@@ -1,7 +1,7 @@
 import type { Route } from "./+types/home";
 
-import { UI } from "~/components/ui";
-import { GL } from "~/gl";
+import { UI } from "@/components/ui";
+import { GL } from "@/gl";
 
 export function meta({}: Route.MetaArgs) {
   return [
