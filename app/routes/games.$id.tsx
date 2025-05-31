@@ -36,10 +36,15 @@ export default function GamePage() {
   // Show lobby while waiting for game to start or during setup
   const showLobby = !state || !state.turn || state.turn.playerId === null;
 
+  if (!state) return <div>Loading...</div>;
+
   if (showLobby && id) {
     return (
       <div className="fixed w-screen h-screen">
-        <GL />
+        {/* <GL /> */}
+        <button onClick={() => mutate({ type: "start-game" })}>
+          start game HOBO
+        </button>
         <GameLobby
           gameId={id}
           gameCode={gameCode}
@@ -52,7 +57,7 @@ export default function GamePage() {
   // Game has started - show debug interface for now
   return (
     <div className="fixed w-screen h-screen">
-      <GL />
+      <GL state={state} />
       <div className="absolute top-4 left-4 bg-black/80 text-white p-4 rounded-md max-w-md">
         {isMyTurn && (
           <div className="text-green-400 font-bold mb-2">YOUR TURN</div>

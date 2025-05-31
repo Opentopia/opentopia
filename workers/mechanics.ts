@@ -1,4 +1,5 @@
 import { parseTileKey } from "./utils";
+import { generateMap } from "./generate-map";
 
 type UnitType = "warrior" | "archer";
 
@@ -56,6 +57,7 @@ export type Unit = {
 
 export type Player = {
   id: string;
+  isHost?: boolean;
   name: string;
   view: TileKey[];
   stars: number;
@@ -84,6 +86,9 @@ export type Mutation =
   | {
       type: "conquer";
       tileKey: TileKey;
+    }
+  | {
+      type: "start-game";
     }
   | {
       type: "end-turn";
@@ -264,14 +269,10 @@ export function mutate({
       break;
     }
     case "join-game": {
-      nextState.players.push(mutation.player);
-      if (nextState.players.length === 1) {
-        // is first player. give it the first turn
-        nextState.turn = {
-          playerId: mutation.player.id,
-          until: Date.now() + 30_000,
-        };
-      }
+      nextState.players.push({
+        ...mutation.player,
+        isHost: nextState.players.length === 0,
+      });
 
       break;
     }
@@ -287,7 +288,7 @@ export function mutate({
       }).nextState;
 
       // Remove player from players array
-      nextState.players = nextState.players.filter((p) => p.id !== playerId);
+      nextState.players = nextState.players.filter(p => p.id !== playerId);
 
       // Set all their villages to neutral
       for (const tile of Object.values(nextState.map)) {
@@ -301,14 +302,30 @@ export function mutate({
       }
 
       // Remove all their units
-      nextState.units = nextState.units.filter((u) => u.ownedBy !== playerId);
+      nextState.units = nextState.units.filter(u => u.ownedBy !== playerId);
 
       // If only one player left, finish the game
       if (nextState.players.length <= 1) {
         nextState.status = "finished";
         nextState.turn = null;
       }
-
+      break;
+    }
+    case "start-game": {
+      // ensure player is host
+      const player = nextState.players.find(p => p.id === playerId);
+      if (!player) {
+        throw new Error("Player not found");
+      }
+      if (!player.isHost) {
+        throw new Error("You are not the host");
+      }
+      nextState.status = "started";
+      nextState.map = generateMap(nextState.players.length);
+      nextState.turn = {
+        playerId: player.id,
+        until: Date.now() + 30_000,
+      };
       break;
     }
     default:
