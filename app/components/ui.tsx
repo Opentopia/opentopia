@@ -18,9 +18,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useGlobalStore } from "@/store/global";
 
 export const UI = () => {
-  const { id, isLoading } = useParams();
+  const { id } = useParams();
 
-  const { playerId, gameState } = useGlobalStore();
+  const { playerId, gameState, isLoading } = useGlobalStore();
 
   const isGameRoute = useMatch("/games/:id");
 

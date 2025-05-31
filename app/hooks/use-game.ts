@@ -114,6 +114,7 @@ export const useGame = (id: string | undefined) => {
       return {
         playerId,
         gameState: state,
+        isLoading: false,
         onMutate,
         mapView: Object.fromEntries(
           Object.entries(state?.map ?? {}).map(([key, tile]) => {
@@ -124,7 +125,7 @@ export const useGame = (id: string | undefined) => {
         ),
       };
     });
-  }, [state, playerId, onMutate]);
+  }, [state, playerId, onMutate, isLoading]);
 
   return {
     playerId,
