@@ -16,9 +16,9 @@
     "@react-three/drei": "^10.1.2",
     "@react-three/fiber": "^9.1.2",
     "@tanstack/react-query": "^5.79.0",
-    "hono": "^4.7.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "hono": "^4.7.10",
     "iron-session": "^8.0.4",
     "isbot": "^5.1.27",
     "lucide-react": "^0.511.0",
@@ -38,11 +38,18 @@
     "@types/node": "^20",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@types/three": "^0.176.0",
     "tailwindcss": "^4.1.4",
     "tw-animate-css": "^1.3.2",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",
     "wrangler": "^4.18.0"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "all",
+    "arrowParens": "avoid"
   }
 }

@@ -56,6 +56,7 @@ export type Unit = {
 
 export type Player = {
   id: string;
+  name: string;
   view: TileKey[];
   stars: number;
 };
@@ -117,7 +118,7 @@ export function mutate({
       if (!result.success) {
         throw new Error(result.reason);
       }
-      const unit = nextState.units.find((u) => u.id === mutation.unitId)!;
+      const unit = nextState.units.find(u => u.id === mutation.unitId)!;
       const destTile = nextState.map[mutation.to];
       if (
         destTile.building &&
@@ -139,9 +140,9 @@ export function mutate({
       if (!result.success) {
         throw new Error(result.reason);
       }
-      const attacker = nextState.units.find((u) => u.id === mutation.unitId)!;
+      const attacker = nextState.units.find(u => u.id === mutation.unitId)!;
       const defender = nextState.units.find(
-        (u) => u.id === mutation.targetUnitId
+        u => u.id === mutation.targetUnitId,
       )!;
       const attackerMaxHp = 10;
       const defenderMaxHp = 10;
@@ -149,7 +150,7 @@ export function mutate({
       const defenseForce = defender.defense * (defender.health / defenderMaxHp);
       const totalDamage = attackForce + defenseForce;
       const attackResult = Math.round(
-        (attackForce / totalDamage) * attacker.attack * 4.5
+        (attackForce / totalDamage) * attacker.attack * 4.5,
       );
       const damageToDefender = Math.max(1, attackResult);
       defender.health -= damageToDefender;
@@ -158,12 +159,12 @@ export function mutate({
           defender.defense * (defender.health / defenderMaxHp);
         const newTotalDamage = attackForce + newDefenseForce;
         const defenseResult = Math.round(
-          (newDefenseForce / newTotalDamage) * defender.defense * 4.5
+          (newDefenseForce / newTotalDamage) * defender.defense * 4.5,
         );
         const damageToAttacker = Math.max(1, defenseResult);
         attacker.health -= damageToAttacker;
       }
-      nextState.units = nextState.units.filter((u) => u.health > 0);
+      nextState.units = nextState.units.filter(u => u.health > 0);
       if (defender.health <= 0 && attacker.range === 1) {
         attacker.tileKey = defender.tileKey;
       }
@@ -178,7 +179,7 @@ export function mutate({
       if (!result.success) {
         throw new Error(result.reason);
       }
-      const player = nextState.players.find((p) => p.id === playerId)!;
+      const player = nextState.players.find(p => p.id === playerId)!;
       const cost = UNIT_COST[mutation.unitType];
       player.stars -= cost;
       nextState.units.push({
@@ -204,7 +205,7 @@ export function mutate({
         throw new Error(result.reason);
       }
       const unit = nextState.units.find(
-        (u) => u.tileKey === mutation.tileKey && u.ownedBy === playerId
+        u => u.tileKey === mutation.tileKey && u.ownedBy === playerId,
       )!;
       const tile = nextState.map[mutation.tileKey];
       tile.building!.ownedBy = playerId;
@@ -217,7 +218,7 @@ export function mutate({
       }
 
       const currentPlayerIdx = nextState.players.findIndex(
-        (p) => p.id === playerId
+        p => p.id === playerId,
       );
       const nextPlayerIdx = (currentPlayerIdx + 1) % nextState.players.length;
       const nextPlayer = nextState.players[nextPlayerIdx];
@@ -243,8 +244,9 @@ export function mutate({
           tile.building.ownedBy !== nextPlayer.id
         ) {
           const unitOnTile = nextState.units.find(
-            (u) =>
-              u.tileKey === `${tile.x},${tile.y}` && u.ownedBy === nextPlayer.id
+            u =>
+              u.tileKey === `${tile.x},${tile.y}` &&
+              u.ownedBy === nextPlayer.id,
           );
           if (unitOnTile) {
             tile.building.ownedBy = nextPlayer.id;
@@ -302,7 +304,7 @@ function validateMove({
   mutation: Extract<Mutation, { type: "move" }>;
   state: State;
 }): { success: true } | { success: false; reason: string } {
-  const unit = state.units.find((u) => u.id === mutation.unitId);
+  const unit = state.units.find(u => u.id === mutation.unitId);
   if (!unit) return { success: false, reason: "Unit not found" };
   if (unit.ownedBy !== playerId)
     return { success: false, reason: "You do not own this unit" };
@@ -315,7 +317,7 @@ function validateMove({
   const destTile = state.map[mutation.to];
   if (!destTile)
     return { success: false, reason: "Destination tile does not exist" };
-  const occupied = state.units.some((u) => u.tileKey === mutation.to);
+  const occupied = state.units.some(u => u.tileKey === mutation.to);
   if (occupied)
     return { success: false, reason: "Destination tile is occupied" };
   return { success: true };
@@ -330,8 +332,8 @@ function validateAttack({
   mutation: Extract<Mutation, { type: "attack" }>;
   state: State;
 }): { success: true } | { success: false; reason: string } {
-  const attacker = state.units.find((u) => u.id === mutation.unitId);
-  const defender = state.units.find((u) => u.id === mutation.targetUnitId);
+  const attacker = state.units.find(u => u.id === mutation.unitId);
+  const defender = state.units.find(u => u.id === mutation.targetUnitId);
   if (!attacker) return { success: false, reason: "Attacker unit not found" };
   if (!defender) return { success: false, reason: "Defender unit not found" };
   if (attacker.ownedBy !== playerId)
@@ -363,9 +365,9 @@ function validateSpawn({
     tile.building.ownedBy !== playerId
   )
     return { success: false, reason: "Can only spawn in your own village" };
-  const occupied = state.units.some((u) => u.tileKey === mutation.tileKey);
+  const occupied = state.units.some(u => u.tileKey === mutation.tileKey);
   if (occupied) return { success: false, reason: "Tile is occupied" };
-  const player = state.players.find((p) => p.id === playerId);
+  const player = state.players.find(p => p.id === playerId);
   if (!player) return { success: false, reason: "Player not found" };
   const cost = UNIT_COST[mutation.unitType];
   if (player.stars < cost)
@@ -390,8 +392,10 @@ function validateConquer({
     return { success: false, reason: "Village already owned by you" };
   }
   const unit = state.units.find(
-    (u) =>
-      u.tileKey === mutation.tileKey && u.ownedBy === playerId && u.movement > 0
+    u =>
+      u.tileKey === mutation.tileKey &&
+      u.ownedBy === playerId &&
+      u.movement > 0,
   );
   if (!unit) {
     return {

@@ -19,12 +19,16 @@
         "name": "GAME",
         "class_name": "Game",
       },
+      {
+        "name": "DB",
+        "class_name": "DB",
+      },
     ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["Game"],
+      "new_sqlite_classes": ["Game", "DB"],
     },
   ],
 }

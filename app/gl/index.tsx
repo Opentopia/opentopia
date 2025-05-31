@@ -1,15 +1,23 @@
-import React, { useMemo, useRef } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls, OrthographicCamera, PerspectiveCamera, useTexture } from '@react-three/drei';
-import * as THREE from 'three';
-import type { Tile } from 'workers/mechanics';
-import { map } from './mock';
+import React, { useMemo, useRef } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import {
+  OrbitControls,
+  OrthographicCamera,
+  PerspectiveCamera,
+  useTexture,
+} from "@react-three/drei";
+import * as THREE from "three";
+import type { Tile } from "workers/mechanics";
+import { map } from "./mock";
+import { useGlobalStore } from "../store/global";
 
 interface BlockProps extends Tile {
   position: [number, number, number];
   spacing: number;
   x: number;
   y: number;
+  onHover: (x: number, y: number) => void;
+  onLeave: () => void;
 }
 
 const texMiddleware = (texture: any) => {
@@ -23,41 +31,78 @@ const texMiddleware = (texture: any) => {
     t.anisotropy = 1;
     t.colorSpace = THREE.SRGBColorSpace;
     t.needsUpdate = true;
-  })
-}
+  });
+};
 
-const Block: React.FC<BlockProps> = ({ position, spacing, kind, x, y }) => {
+const Block: React.FC<BlockProps> = ({
+  position,
+  spacing,
+  kind,
+  x,
+  y,
+  onHover,
+  onLeave,
+}) => {
   const blockSize = 1 - spacing;
 
   // Load cube texture for grass blocks
-  const grassTexture = useTexture([
-    '/textures/grass/grass-side.png', // positive X
-    '/textures/grass/grass-top.png', // negative X
-  ], texMiddleware) as unknown as THREE.Texture[];
+  const grassTexture = useTexture(
+    [
+      "/textures/grass/grass-side.png", // positive X
+      "/textures/grass/grass-top.png", // negative X
+    ],
+    texMiddleware,
+  ) as unknown as THREE.Texture[];
 
-  const rockTexture = useTexture([
-    '/textures/stone/stone-side.png', // positive X
-    '/textures/stone/stone-top.png', // negative X
-  ], texMiddleware) as unknown as THREE.Texture[];
+  const rockTexture = useTexture(
+    [
+      "/textures/stone/stone-side.png", // positive X
+      "/textures/stone/stone-top.png", // negative X
+    ],
+    texMiddleware,
+  ) as unknown as THREE.Texture[];
 
   const materials = useMemo(() => {
-    const facemap = [0, 0, 1, 1, 0, 0]
-    return Array.from({ length: 6 }, (_, i) => {
-      return new THREE.MeshStandardMaterial({
-        map: kind === 'rock' ? rockTexture[facemap[i]] : grassTexture[facemap[i]]
-      })
-    })
-  }, [grassTexture])
-  
+    const top = new THREE.MeshStandardMaterial({
+      map: kind === "rock" ? rockTexture[1] : grassTexture[1],
+    });
+
+    const side = new THREE.MeshStandardMaterial({
+      map: kind === "rock" ? rockTexture[0] : grassTexture[0],
+    });
+
+    return [side, side, top, top, side, side];
+  }, [grassTexture, rockTexture, kind]);
+
+  const handlePointerEnter = (e: any) => {
+    e.stopPropagation();
+    console.log("hover block", x, y, e);
+    onHover(x, y);
+  };
+
+  const handlePointerLeave = (e: any) => {
+    e.stopPropagation();
+    onLeave();
+  };
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    console.log("clicked block", x, y, e);
+    // Add click logic here - for now just console log
+  };
+
   return (
-    // @ts-ignore
-    <mesh position={position} material={materials}>
+    <mesh
+      position={position}
+      /* @ts-ignore - Three.js type version conflict */
+      material={materials}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onClick={handleClick}
+      onPointerDown={e => e.stopPropagation()}
+      onPointerUp={e => e.stopPropagation()}
+    >
       <boxGeometry args={[blockSize, blockSize, blockSize]} />
-      {/* <meshStandardMaterial 
-        color={kind === 'rock' ? color : undefined}
-        roughness={0.3}
-        metalness={0.1}
-      /> */}
     </mesh>
   );
 };
@@ -69,27 +114,45 @@ interface GridProps {
 }
 
 const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
-  const blocks = useMemo(() => {
-    const blockArray: React.ReactElement[] = [];
-    
-    // Calculate the actual bounds of the map
+  const { hoveredBlock, hoverBlock } = useGlobalStore();
+  const blockSize = 1 - spacing;
+
+  const handleHover = (x: number, y: number) => {
+    hoverBlock(`${x},${y}`);
+  };
+
+  const handleLeave = () => {
+    hoverBlock(null);
+  };
+
+  // Calculate map bounds and center offsets - shared logic
+  const mapBounds = useMemo(() => {
     const tiles = Object.values(map);
-    if (tiles.length === 0) return [];
-    
+    if (tiles.length === 0) return null;
+
     const minX = Math.min(...tiles.map(tile => tile.x));
     const maxX = Math.max(...tiles.map(tile => tile.x));
     const minY = Math.min(...tiles.map(tile => tile.y));
     const maxY = Math.max(...tiles.map(tile => tile.y));
-    
-    // Calculate center offset based on actual map bounds
+
     const centerX = (minX + maxX) / 2;
     const centerZ = (minY + maxY) / 2;
-    
+
+    return { minX, maxX, minY, maxY, centerX, centerZ };
+  }, [map]);
+
+  const blocks = useMemo(() => {
+    const blockArray: React.ReactElement[] = [];
+
+    if (!mapBounds) return [];
+
+    const { centerX, centerZ } = mapBounds;
+
     // Iterate over the map entries instead of creating a generic grid
     Object.entries(map).forEach(([key, tile]) => {
       const posX = tile.x - centerX;
       const posZ = tile.y - centerZ;
-      
+
       blockArray.push(
         <Block
           key={`block-${tile.x}-${tile.y}`}
@@ -99,14 +162,46 @@ const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
           y={tile.y}
           kind={tile.kind}
           building={tile.building}
-        />
+          onHover={handleHover}
+          onLeave={handleLeave}
+        />,
       );
     });
-    
-    return blockArray;
-  }, [gridSize, spacing, map]);
 
-  return <>{blocks}</>;
+    return blockArray;
+  }, [gridSize, spacing, map, mapBounds]);
+
+  // Calculate hover indicator position
+  const hoverIndicatorPosition = useMemo(() => {
+    if (!hoveredBlock || !mapBounds) return null;
+
+    const [x, y] = hoveredBlock.split(",").map(Number);
+    const { centerX, centerZ } = mapBounds;
+
+    const posX = x - centerX;
+    const posZ = y - centerZ;
+
+    return [posX, blockSize / 2 + 0.01, posZ] as [number, number, number];
+  }, [hoveredBlock, mapBounds, blockSize]);
+
+  return (
+    <>
+      {blocks}
+
+      {/* Single hover indicator */}
+      {hoveredBlock && hoverIndicatorPosition && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={hoverIndicatorPosition}>
+          <planeGeometry args={[blockSize, blockSize]} />
+          <meshBasicMaterial
+            color="#ffffff"
+            transparent
+            opacity={0.5}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
+    </>
+  );
 };
 
 interface FloatingStarsProps {
@@ -118,13 +213,13 @@ interface FloatingStarsProps {
   position?: [number, number, number];
 }
 
-const FloatingStars: React.FC<FloatingStarsProps> = ({ 
-  count = 200, 
-  cubeSize = 30, 
-  color = '#ffffff',
+const FloatingStars: React.FC<FloatingStarsProps> = ({
+  count = 200,
+  cubeSize = 30,
+  color = "#ffffff",
   speed = 0.001,
   showDebugCube = false,
-  position = [0, 0, 0]
+  position = [0, 0, 0],
 }) => {
   const pointsRef = useRef<THREE.Points>(null);
   const velocitiesRef = useRef<Float32Array | undefined>(undefined);
@@ -140,7 +235,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
       positions[i3] = (Math.random() - 0.5) * cubeSize + position[0];
       positions[i3 + 1] = (Math.random() - 0.5) * cubeSize + position[1];
       positions[i3 + 2] = (Math.random() - 0.5) * cubeSize + position[2];
-      
+
       // Random velocity
       velocities[i3] = (Math.random() - 0.5) * speed;
       velocities[i3 + 1] = (Math.random() - 0.5) * speed;
@@ -154,26 +249,36 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
   useFrame(() => {
     if (!pointsRef.current || !velocitiesRef.current) return;
 
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
+    const positions = pointsRef.current.geometry.attributes.position
+      .array as Float32Array;
     const velocities = velocitiesRef.current;
     const halfSize = cubeSize / 2;
 
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-      
+
       // Update positions
       positions[i3] += velocities[i3];
       positions[i3 + 1] += velocities[i3 + 1];
       positions[i3 + 2] += velocities[i3 + 2];
-      
+
       // Wrap around cube bounds relative to position offset
-      if (positions[i3] > position[0] + halfSize || positions[i3] < position[0] - halfSize) {
+      if (
+        positions[i3] > position[0] + halfSize ||
+        positions[i3] < position[0] - halfSize
+      ) {
         velocities[i3] *= -1;
       }
-      if (positions[i3 + 1] > position[1] + halfSize || positions[i3 + 1] < position[1] - halfSize) {
+      if (
+        positions[i3 + 1] > position[1] + halfSize ||
+        positions[i3 + 1] < position[1] - halfSize
+      ) {
         velocities[i3 + 1] *= -1;
       }
-      if (positions[i3 + 2] > position[2] + halfSize || positions[i3 + 2] < position[2] - halfSize) {
+      if (
+        positions[i3 + 2] > position[2] + halfSize ||
+        positions[i3 + 2] < position[2] - halfSize
+      ) {
         velocities[i3 + 2] *= -1;
       }
     }
@@ -183,7 +288,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
   return (
     <>
-      <points  frustumCulled={false} ref={pointsRef}>
+      <points frustumCulled={false} ref={pointsRef}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
@@ -201,13 +306,13 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
           opacity={1}
         />
       </points>
-      
+
       {/* Debug Cube */}
       {showDebugCube && (
         <mesh frustumCulled={false} position={position}>
           <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
-          <meshBasicMaterial 
-            color="red" 
+          <meshBasicMaterial
+            color="red"
             wireframe={true}
             transparent={true}
             opacity={0.3}
@@ -225,7 +330,7 @@ interface MapProps {
 export const Game = ({ spacing = 0.1 }: MapProps) => {
   return (
     <Canvas
-      style={{ width: '100%', height: '100vh' }}
+      style={{ width: "100%", height: "100vh" }}
       shadows
       gl={{ antialias: true }}
     >
@@ -237,19 +342,16 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
         near={0.1}
         far={1000}
       />
-      
+
       {/* Lighting */}
       <ambientLight intensity={0.5} />
-      <directionalLight
-        position={[10, 20, 10]}
-        intensity={1}
-      />
-      
+      <directionalLight position={[10, 20, 10]} intensity={1} />
+
       {/* Coordinate Axes */}
       <axesHelper args={[5]} />
-      
+
       {/* Floating Stars */}
-      <FloatingStars 
+      <FloatingStars
         count={3000}
         cubeSize={120}
         color="#87CEEB"
@@ -257,25 +359,11 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
         showDebugCube={true}
         position={[0, -60, 0]}
       />
-      
+
       {/* Grid of Blocks */}
       <Grid gridSize={32} spacing={spacing} map={map} />
-      
-      {/* Ground Plane */}
-      {/* <mesh 
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -0.5, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial 
-          color="red" 
-          transparent 
-          opacity={0.3}
-        />
-      </mesh> */}
-      
-      {/* Controls */}
+
+      {/* Controls - Fixed mouse button configuration */}
       <OrbitControls
         enablePan={true}
         enableZoom={true}
@@ -293,10 +381,11 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         mouseButtons={{
-          LEFT: THREE.MOUSE.PAN,
+          LEFT: THREE.MOUSE.ROTATE, // Changed from PAN to ROTATE
           MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.ROTATE
+          RIGHT: THREE.MOUSE.PAN, // Changed from ROTATE to PAN
         }}
+        makeDefault={false}
       />
     </Canvas>
   );
@@ -307,9 +396,5 @@ interface GLProps {
 }
 
 export const GL = ({ spacing = 0.1 }: GLProps) => {
-  return (
-    
-      <Game spacing={spacing} />
-    
-  );
+  return <Game spacing={spacing} />;
 };

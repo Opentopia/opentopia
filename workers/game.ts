@@ -63,7 +63,7 @@ export class Game extends DurableObject {
         // if an existing player is reconnecting
         if (existingPlayerId && existingSession) {
           const isInGame = this.state.players.find(
-            (p) => p.id === existingPlayerId
+            p => p.id === existingPlayerId,
           );
           if (isInGame) {
             return Response.json({
@@ -115,9 +115,14 @@ export class Game extends DurableObject {
     return new Response("Hello, world!");
   }
 
+  getState() {
+    return this.state;
+  }
+
   private async createPlayer(): Promise<{ player: Player; session: string }> {
     const player: Player = {
       id: crypto.randomUUID(),
+      name: "Player",
       view: [],
       stars: 0,
     };
@@ -138,13 +143,13 @@ export class Game extends DurableObject {
   }
 
   private async authenticate(
-    session: string | undefined | null
+    session: string | undefined | null,
   ): Promise<{ playerId: string | null }> {
     if (!session) return { playerId: null };
     try {
       const { playerId } = await unsealData<{ playerId: string }>(
         session,
-        sessionOptions
+        sessionOptions,
       );
       return { playerId };
     } catch (err) {
@@ -184,7 +189,7 @@ export class Game extends DurableObject {
     ws: WebSocket,
     code: number,
     reason: string,
-    wasClean: boolean
+    wasClean: boolean,
   ) {
     // If the client closes the connection, the runtime will invoke the webSocketClose() handler.
     ws.close(code, "Durable Object is closing WebSocket");

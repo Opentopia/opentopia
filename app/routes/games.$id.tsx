@@ -91,6 +91,8 @@ export default function GamePage() {
   );
 }
 
+export type GameSessions = Record<string, string>;
+
 const useGame = (id: string | undefined) => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
   const { lastMessage, sendJsonMessage } = useWebSocket(socketUrl);
@@ -98,9 +100,13 @@ const useGame = (id: string | undefined) => {
   const { data } = useQuery({
     queryKey: ["game", id],
     queryFn: async () => {
+      if (!id) return;
+
       const storage = "sessionStorage";
-      const existingSession = window[storage].getItem(`game-${id}`);
-      console.log("existingSession", existingSession);
+      const sessions = JSON.parse(
+        window[storage].getItem(`game-sessions`) || "{}",
+      ) as GameSessions;
+      const existingSession = sessions[id];
       const res = await fetch(`/api/games/${id}`, {
         headers: existingSession
           ? { Authorization: `Bearer ${existingSession}` }
@@ -110,7 +116,8 @@ const useGame = (id: string | undefined) => {
       if (!data.success) {
         throw new Error("Failed to join game");
       }
-      window[storage].setItem(`game-${id}`, data.session);
+      sessions[id] = data.session;
+      window[storage].setItem(`game-sessions`, JSON.stringify(sessions));
       return data;
     },
     enabled: !!id,
@@ -152,7 +159,7 @@ const useGame = (id: string | undefined) => {
         mutation,
       } satisfies WSMessageSend);
     },
-    [session, playerId, state, sendJsonMessage]
+    [session, playerId, state, sendJsonMessage],
   );
 
   const [lastMessageProcessed, setLastMessageProcessed] =

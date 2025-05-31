@@ -1,5 +1,6 @@
 import { createRequestHandler } from "react-router";
 import { api } from "./api";
+export { DB } from "./db";
 export { Game } from "./game";
 
 declare module "react-router" {
@@ -13,7 +14,7 @@ declare module "react-router" {
 
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
-  import.meta.env.MODE
+  import.meta.env.MODE,
 );
 
 export default {
