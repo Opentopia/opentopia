@@ -17,6 +17,7 @@ import type { CreateGameResponse } from "workers/shared-types";
 import { PlayersLobby } from "./players-lobby";
 import { AnimatePresence, motion } from "motion/react";
 import { useGlobalStore } from "@/store/global";
+import { API_ORIGIN } from "@/constants";
 
 export const UI = () => {
   const { id } = useParams();
@@ -145,7 +146,7 @@ const HomeActions = () => {
   const handleCreateGame = async () => {
     try {
       setIsCreatingGame(true);
-      const response = await fetch("/api/games", {
+      const response = await fetch(API_ORIGIN + "/api/games", {
         method: "POST",
       });
       const result = (await response.json()) as CreateGameResponse;

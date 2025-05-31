@@ -3,6 +3,7 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Link } from "react-router";
 import type { GamesListResponse } from "workers/shared-types";
+import { API_ORIGIN } from "@/constants";
 
 interface ActiveGame {
   id: string;
@@ -32,7 +33,7 @@ export const ActiveGamesList = ({
           setIsLoading(true);
         }
 
-        const response = await fetch("/api/games");
+        const response = await fetch(API_ORIGIN + "/api/games");
         const gamesData = (await response.json()) as GamesListResponse;
 
         // Transform the API response to match our UI needs
@@ -135,8 +136,8 @@ export const ActiveGamesList = ({
                   {game.status === "waiting"
                     ? "Waiting"
                     : game.status === "in-progress"
-                    ? "In Progress"
-                    : "Finished"}
+                      ? "In Progress"
+                      : "Finished"}
                 </span>
               </div>
               <div className="flex gap-2">

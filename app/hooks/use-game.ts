@@ -9,6 +9,7 @@ import type {
   WSMessageSend,
 } from "workers/shared-types";
 import { useGlobalStore } from "@/store/global";
+import { API_ORIGIN } from "@/constants";
 
 export const useGame = (id: string | undefined) => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export const useGame = (id: string | undefined) => {
         window[storage].getItem(`game-sessions`) || "{}",
       ) as GameSessions;
       const existingSession = sessions[id];
-      const res = await fetch(`/api/games/${id}`, {
+      const res = await fetch(API_ORIGIN + `/api/games/${id}`, {
         headers: existingSession
           ? { Authorization: `Bearer ${existingSession}` }
           : undefined,
@@ -54,8 +55,7 @@ export const useGame = (id: string | undefined) => {
     if (!id) return;
     if (!session) return;
 
-    const url = new URL(window.location.href);
-    setSocketUrl(`${url.origin.replace("http", "ws")}/api/games/${id}/ws`);
+    setSocketUrl(`${API_ORIGIN.replace("http", "ws")}/api/games/${id}/ws`);
   }, [id, session]);
 
   const onMutate = useCallback(

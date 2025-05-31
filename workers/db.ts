@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { env } from "cloudflare:workers";
 import { Game } from "./game";
+import { cors } from "./app";
 
 export class DB extends DurableObject {
   constructor(state: DurableObjectState, env: Env) {
@@ -20,7 +21,7 @@ export class DB extends DurableObject {
     const stub = env.GAME.get(env.GAME.idFromName(id));
     const state = await stub.getState();
 
-    return Response.json({ id, state });
+    return Response.json({ id, state }, { headers: cors });
   }
 
   async getGames() {
@@ -35,6 +36,6 @@ export class DB extends DurableObject {
       }),
     );
 
-    return Response.json(resolved);
+    return Response.json(resolved, { headers: cors });
   }
 }

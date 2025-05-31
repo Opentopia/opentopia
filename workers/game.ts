@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import { DurableObject } from "cloudflare:workers";
 import { sealData, unsealData } from "iron-session";
 import { mutate, type Player, type State, type MutateProps } from "./mechanics";
@@ -7,6 +7,7 @@ import type {
   WSMessageSend,
   WSMessageReceive,
 } from "./shared-types";
+import { cors } from "./app";
 
 const sessionOptions: { password: string; ttl?: number } = {
   password:
@@ -33,7 +34,9 @@ export class Game extends DurableObject {
   }
 
   static getGameId() {
-    return nanoid(6).toUpperCase();
+    return customAlphabet(
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    )(6).toUpperCase();
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -58,6 +61,7 @@ export class Game extends DurableObject {
         return new Response(null, {
           status: 101,
           webSocket: client,
+          headers: cors,
         });
       }
       case "/join": {
@@ -72,53 +76,70 @@ export class Game extends DurableObject {
             p => p.id === existingPlayerId,
           );
           if (isInGame) {
-            return Response.json({
-              success: true,
-              session: existingSession,
-              state: this.state,
-              playerId: existingPlayerId,
-            } satisfies JoinResponse);
+            return Response.json(
+              {
+                success: true,
+                session: existingSession,
+                state: this.state,
+                playerId: existingPlayerId,
+              } satisfies JoinResponse,
+              { headers: cors },
+            );
           } else if (this.state.status === "lobby") {
             const { session, player } = await this.createPlayer();
-            return Response.json({
-              success: true,
-              session,
-              state: this.state,
-              playerId: player.id,
-            } satisfies JoinResponse);
+            return Response.json(
+              {
+                success: true,
+                session,
+                state: this.state,
+                playerId: player.id,
+              } satisfies JoinResponse,
+              { headers: cors },
+            );
           } else {
-            return Response.json({
-              success: false,
-              error:
-                this.state.status === "finished"
-                  ? "game ended"
-                  : "game started",
-            } satisfies JoinResponse);
+            return Response.json(
+              {
+                success: false,
+                error:
+                  this.state.status === "finished"
+                    ? "game ended"
+                    : "game started",
+              } satisfies JoinResponse,
+              { headers: cors },
+            );
           }
         }
 
         // else it's a new player
 
         if (this.state.status !== "lobby") {
-          return Response.json({
-            success: false,
-            error:
-              this.state.status === "finished" ? "game ended" : "game started",
-          } satisfies JoinResponse);
+          return Response.json(
+            {
+              success: false,
+              error:
+                this.state.status === "finished"
+                  ? "game ended"
+                  : "game started",
+            } satisfies JoinResponse,
+            { headers: cors },
+          );
         }
 
         const { session, player } = await this.createPlayer();
 
-        return Response.json({
-          session,
-          success: true,
-          state: this.state,
-          playerId: player.id,
-        } satisfies JoinResponse);
+        return Response.json(
+          {
+            session,
+            success: true,
+            state: this.state,
+            playerId: player.id,
+          } satisfies JoinResponse,
+          { headers: cors },
+        );
       }
     }
 
-    return new Response("Hello, world!");
+    return new Response(null, { status: 404, headers: cors });
   }
 
   getState() {
