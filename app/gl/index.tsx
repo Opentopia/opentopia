@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -8,7 +8,7 @@ import {
   Billboard,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { Tile, State, Unit } from "workers/mechanics";
+import type { Tile, State, Unit, TileKey } from "workers/mechanics";
 import { useGlobalStore } from "../store/global";
 
 const SPACING = 0.01;
@@ -31,12 +31,14 @@ const useMapBounds = (map: Record<string, Tile>) => {
 };
 
 interface BlockProps extends Tile {
+  tileKey: TileKey;
   position: [number, number, number];
   spacing: number;
   x: number;
   y: number;
   onHover: (x: number, y: number) => void;
   onLeave: () => void;
+  onClick: (tileKey: TileKey) => void;
 }
 
 const texMiddleware = (texture: any) => {
@@ -57,10 +59,12 @@ const Block: React.FC<BlockProps> = ({
   position,
   spacing,
   kind,
+  tileKey,
   x,
   y,
   onHover,
   onLeave,
+  onClick,
 }) => {
   const blockSize = 1 - spacing;
 
@@ -106,8 +110,7 @@ const Block: React.FC<BlockProps> = ({
 
   const handleClick = (e: any) => {
     e.stopPropagation();
-    console.log("clicked block", x, y, e);
-    // Add click logic here - for now just console log
+    onClick(tileKey);
   };
 
   return (
@@ -133,16 +136,37 @@ interface GridProps {
 
 const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
   const gridSize = Math.sqrt(Object.keys(map).length);
-  const { hoveredBlock, hoverBlock } = useGlobalStore();
+  const { hoveredBlock, hoverBlock, gameState, selectUnit } = useGlobalStore();
   const blockSize = 1 - spacing;
 
-  const handleHover = (x: number, y: number) => {
-    hoverBlock(`${x},${y}`);
-  };
+  const handleHover = useCallback(
+    (x: number, y: number) => {
+      hoverBlock(`${x},${y}`);
+    },
+    [hoverBlock],
+  );
 
-  const handleLeave = () => {
+  const handleLeave = useCallback(() => {
     hoverBlock(null);
-  };
+  }, [hoverBlock]);
+
+  const handleClick = useCallback(
+    (key: string) => {
+      console.log("clicked block", key);
+      console.log({ gameState });
+      if (key && gameState) {
+        const unit = gameState.units.find(u => u.tileKey === key);
+        if (unit) {
+          selectUnit(unit.id);
+        } else {
+          selectUnit(null);
+        }
+      } else {
+        selectUnit(null);
+      }
+    },
+    [gameState, selectUnit],
+  );
 
   // Calculate map bounds and center offsets - shared logic
   const mapBounds = useMapBounds(map);
@@ -156,12 +180,14 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
 
     // Iterate over the map entries instead of creating a generic grid
     Object.entries(map).forEach(([key, tile]) => {
+      const tileKey = key as TileKey;
       const posX = tile.x - centerX;
       const posZ = tile.y - centerZ;
 
       blockArray.push(
         <Block
           key={`block-${tile.x}-${tile.y}`}
+          tileKey={tileKey}
           position={[posX, 0, posZ]}
           spacing={spacing}
           x={tile.x}
@@ -170,6 +196,7 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
           building={tile.building}
           onHover={handleHover}
           onLeave={handleLeave}
+          onClick={handleClick}
         />,
       );
     });
@@ -336,6 +363,9 @@ const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
   const unitSize = 0.4;
   const blockSize = 1 - SPACING;
   const spriteSize = 0.5;
+  const selectedUnit = useGlobalStore(s => s.selectedUnit);
+
+  console.log({ selectedUnit });
 
   const renderUnits = useMemo(() => {
     if (!mapBounds) return [];
@@ -343,7 +373,8 @@ const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
     return units.map(unit => {
       const posX = map[unit.tileKey].x - mapBounds.centerX;
       const posZ = map[unit.tileKey].y - mapBounds.centerZ;
-      const posY = blockSize / 2 + unitSize / 2;
+      const baseY = blockSize / 2 + unitSize / 2;
+      const posY = unit.id === selectedUnit ? baseY + 0.25 : baseY;
 
       return {
         id: unit.id,
@@ -356,7 +387,7 @@ const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
         ] as const,
       };
     });
-  }, [units, map, mapBounds]);
+  }, [units, map, mapBounds, selectedUnit]);
 
   return (
     <>
@@ -460,33 +491,7 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
 
       <Buildings map={gameState.map} />
 
-      <Units
-        units={[
-          {
-            id: "1",
-            tileKey: "1,1",
-            type: "warrior",
-            attack: 10,
-            defense: 10,
-            range: 1,
-            movement: 1,
-            health: 100,
-            ownedBy: "1",
-          },
-          {
-            id: "2",
-            tileKey: "1,2",
-            type: "warrior",
-            attack: 10,
-            defense: 10,
-            range: 1,
-            movement: 1,
-            health: 100,
-            ownedBy: myId!!,
-          },
-        ]}
-        map={gameState.map}
-      />
+      <Units units={gameState.units} map={gameState.map} />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls

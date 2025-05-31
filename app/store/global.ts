@@ -8,6 +8,8 @@ export const useGlobalStore = create<{
   mapView: State["map"] | null;
   onMutate: (mutation: Mutation) => void;
   playerId: string | null;
+  selectedUnit: string | null;
+  selectUnit: (unitId: string | null) => void;
 }>(set => ({
   hoveredBlock: null,
   hoverBlock: (block: TileKey | null) => set({ hoveredBlock: block }),
@@ -15,4 +17,6 @@ export const useGlobalStore = create<{
   mapView: null,
   onMutate: () => {},
   playerId: null,
+  selectedUnit: null,
+  selectUnit: (unitId: string | null) => set({ selectedUnit: unitId }),
 }));
