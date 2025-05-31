@@ -12,10 +12,14 @@
 		"typecheck": "npm run cf-typegen && react-router typegen && tsc -b"
 	},
 	"dependencies": {
+		"@react-three/drei": "^10.1.2",
+		"@react-three/fiber": "^9.1.2",
 		"isbot": "^5.1.27",
+		"maath": "^0.10.8",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
-		"react-router": "^7.5.3"
+		"react-router": "^7.5.3",
+		"three": "^0.177.0"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.0.12",

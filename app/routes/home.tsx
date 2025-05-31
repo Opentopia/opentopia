@@ -1,5 +1,8 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { useState } from "react";
+
+import { UI } from "~/components/ui";
+import { GL } from "~/gl";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -8,10 +11,11 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export function loader({ context }: Route.LoaderArgs) {
-  return { message: context.cloudflare.env.VALUE_FROM_CLOUDFLARE };
-}
-
-export default function Home({ loaderData }: Route.ComponentProps) {
-  return <Welcome message={loaderData.message} />;
+export default function Home() {
+  return (
+    <div className="fixed w-screen h-screen">
+      <GL />
+      <UI />
+    </div>
+  );
 }
