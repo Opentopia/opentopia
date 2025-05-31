@@ -112,7 +112,6 @@ const Block: React.FC<BlockProps> = ({
 
   const handlePointerEnter = (e: any) => {
     e.stopPropagation();
-    console.log("hover block", x, y, e);
     onHover(x, y);
   };
 
@@ -156,9 +155,10 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
     selectUnit,
     onMutate,
     playerId,
+    selectedUnit,
   } = useGlobalStore();
   const blockSize = 1 - spacing;
-  const selectedUnit = useGlobalStore(s => s.selectedUnit);
+
   const isPlayersTurn = gameState?.turn?.playerId === playerId;
 
   const handleHover = useCallback(
@@ -208,7 +208,7 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
         selectUnit(null);
       }
     },
-    [gameState, selectUnit, selectedUnit, onMutate],
+    [isPlayersTurn, gameState, selectedUnit, onMutate, selectUnit],
   );
 
   // Calculate map bounds and center offsets - shared logic
@@ -245,7 +245,15 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
     });
 
     return blockArray;
-  }, [gridSize, spacing, map, mapBounds]);
+  }, [
+    gridSize,
+    spacing,
+    map,
+    mapBounds,
+    handleClick,
+    handleHover,
+    handleLeave,
+  ]);
 
   // Calculate hover indicator position
   const hoverIndicatorPosition = useMemo(() => {
@@ -320,7 +328,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
     velocitiesRef.current = velocities;
     return { positions, velocities };
-  }, [count, cubeSize, speed, position]);
+  }, [count, cubeSize, speed, position[0], position[1], position[2]]);
 
   useFrame(() => {
     if (!pointsRef.current || !velocitiesRef.current) return;
