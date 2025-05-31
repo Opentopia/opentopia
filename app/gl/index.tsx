@@ -3,13 +3,33 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import {
   OrbitControls,
   OrthographicCamera,
-  PerspectiveCamera,
+  useGLTF,
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
 import type { Tile } from "workers/mechanics";
+
 import { map } from "./mock";
 import { useGlobalStore } from "../store/global";
+
+const SPACING = 0.1;
+
+const useMapBounds = (map: Record<string, Tile>) => {
+  return useMemo(() => {
+    const tiles = Object.values(map);
+    if (tiles.length === 0) return null;
+
+    const minX = Math.min(...tiles.map(tile => tile.x));
+    const maxX = Math.max(...tiles.map(tile => tile.x));
+    const minY = Math.min(...tiles.map(tile => tile.y));
+    const maxY = Math.max(...tiles.map(tile => tile.y));
+
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minY + maxY) / 2;
+
+    return { minX, maxX, minY, maxY, centerX, centerZ };
+  }, [map]);
+};
 
 interface BlockProps extends Tile {
   position: [number, number, number];
@@ -126,20 +146,7 @@ const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
   };
 
   // Calculate map bounds and center offsets - shared logic
-  const mapBounds = useMemo(() => {
-    const tiles = Object.values(map);
-    if (tiles.length === 0) return null;
-
-    const minX = Math.min(...tiles.map(tile => tile.x));
-    const maxX = Math.max(...tiles.map(tile => tile.x));
-    const minY = Math.min(...tiles.map(tile => tile.y));
-    const maxY = Math.max(...tiles.map(tile => tile.y));
-
-    const centerX = (minX + maxX) / 2;
-    const centerZ = (minY + maxY) / 2;
-
-    return { minX, maxX, minY, maxY, centerX, centerZ };
-  }, [map]);
+  const mapBounds = useMapBounds(map);
 
   const blocks = useMemo(() => {
     const blockArray: React.ReactElement[] = [];
@@ -323,17 +330,45 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
   );
 };
 
+const Buildings = () => {
+  const buildingModel = useGLTF("/models/village.glb");
+  const mapBounds = useMapBounds(map);
+  const blockSize = 1 - SPACING;
+
+  const buildings = useMemo(() => {
+    if (!mapBounds) return [];
+
+    const buildingTiles = Object.values(map).filter(tile => tile.building);
+    const { centerX, centerZ } = mapBounds;
+
+    return buildingTiles.map((tile, index) => {
+      const posX = tile.x - centerX;
+      const posZ = tile.y - centerZ;
+      const posY = blockSize / 2; // Elevate by block height
+
+      return (
+        <primitive
+          key={`building-${tile.x}-${tile.y}`}
+          scale={0.08}
+          position={[posX, posY, posZ]}
+          object={buildingModel.scene.clone()}
+        />
+      );
+    });
+  }, [mapBounds, buildingModel.scene, blockSize]);
+
+  return <>{buildings}</>;
+};
+
 interface MapProps {
   spacing?: number;
 }
 
-export const Game = ({ spacing = 0.1 }: MapProps) => {
+export const Game = ({ spacing = SPACING }: MapProps) => {
   return (
-    <Canvas
-      style={{ width: "100%", height: "100vh" }}
-      shadows
-      gl={{ antialias: true }}
-    >
+    <Canvas style={{ width: "100%", height: "100vh" }} gl={{ antialias: true }}>
+      <color attach="background" args={["#000000"]} />
+
       {/* Isometric Camera Setup */}
       <OrthographicCamera
         makeDefault
@@ -362,6 +397,8 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
 
       {/* Grid of Blocks */}
       <Grid gridSize={32} spacing={spacing} map={map} />
+
+      <Buildings />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls
@@ -395,6 +432,6 @@ interface GLProps {
   spacing?: number;
 }
 
-export const GL = ({ spacing = 0.1 }: GLProps) => {
+export const GL = ({ spacing = SPACING }: GLProps) => {
   return <Game spacing={spacing} />;
 };
