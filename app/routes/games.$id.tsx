@@ -1,9 +1,14 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Route } from "./+types/home";
 import { useParams } from "react-router";
 import useWebSocket from "react-use-websocket";
 import { mutate, type Mutation, type State } from "workers/mechanics";
-import type { JoinResponse, WSMessage } from "workers/shared-types";
+import type {
+  JoinResponse,
+  WSMessageReceive,
+  WSMessageSend,
+} from "workers/shared-types";
+import { useQuery } from "@tanstack/react-query";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -16,21 +21,25 @@ export default function Home() {
   const { id } = useParams();
   const { playerId, state, mutate } = useGame(id);
 
+  const isMyTurn = state?.turn?.playerId === playerId;
+
   return (
     <div>
+      {isMyTurn && <div>IS MY TURN</div>}
       <pre>{JSON.stringify({ playerId, state }, null, 2)}</pre>
       <div>
         <button
           onClick={() =>
             mutate({
               type: "move",
-              warriorId: "dude",
-              to: "1:1",
+              unitId: "dude",
+              to: "1,1",
             })
           }
         >
           Test move
         </button>
+        <button onClick={() => mutate({ type: "end-turn" })}>End turn</button>
       </div>
     </div>
   );
@@ -39,69 +48,88 @@ export default function Home() {
 const useGame = (id: string | undefined) => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
   const { lastMessage, sendJsonMessage } = useWebSocket(socketUrl);
-  const [state, setState] = useState<State | null>(null);
-  const [playerId, setPlayerId] = useState<string | null>(id);
-  //   const [socketUrl, setSocketUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-
-    const abortController = new AbortController();
-    const existingPlayer = window.localStorage.getItem(`game-${id}`);
-
-    fetch(`/api/games/${id}?playerId=${existingPlayer}`, {
-      method: "GET",
-      signal: abortController.signal,
-    })
-      .then(async (res) => (await res.json()) as JoinResponse)
-      .then((data) => {
-        setPlayerId(data.playerId);
-        setState(data.state);
+  const { data } = useQuery({
+    queryKey: ["game", id],
+    queryFn: async () => {
+      const storage = "sessionStorage";
+      const existingSession = window[storage].getItem(`game-${id}`);
+      console.log("existingSession", existingSession);
+      const res = await fetch(`/api/games/${id}`, {
+        headers: existingSession
+          ? { Authorization: `Bearer ${existingSession}` }
+          : undefined,
       });
+      const data = (await res.json()) as JoinResponse;
+      if (!data.success) {
+        throw new Error("Failed to join game");
+      }
+      window[storage].setItem(`game-${id}`, data.session);
+      return data;
+    },
+    enabled: !!id,
+  });
 
-    return () => {
-      abortController.abort();
-    };
-  }, [id]);
+  const session = data?.session;
+  const playerId = data?.playerId;
+  const initialState = data?.state;
+  const [state, setState] = useState<State | null>(null);
+
+  useEffect(() => {
+    if (state || !initialState) return;
+    setState(initialState); // initial state
+  }, [initialState, state]);
 
   useEffect(() => {
     if (!id) return;
+    if (!session) return;
 
     const url = new URL(window.location.href);
-    setSocketUrl(`ws://${url.host}/api/games/${id}`);
-  }, [id]);
+    setSocketUrl(`${url.origin.replace("http", "ws")}/api/games/${id}/ws`);
+  }, [id, session]);
 
-  const onMutate = (mutation: Mutation) => {
-    if (!playerId) throw new Error("Player ID is not set");
-    if (!state) throw new Error("State is not set");
-    const { nextState } = mutate({
-      playerId,
-      currentState: state,
-      timestamp: Date.now(),
-      mutation,
-    });
-    setState(nextState);
-    sendJsonMessage({
-      type: "mutation",
-      playerId,
-      mutation,
-    } satisfies WSMessage);
-  };
+  const onMutate = useCallback(
+    (mutation: Mutation) => {
+      if (!session) throw new Error("Session is not set");
+      if (!playerId) throw new Error("Player ID is not set");
+      if (!state) throw new Error("State is not set");
+      const { nextState } = mutate({
+        playerId,
+        currentState: state,
+        timestamp: Date.now(),
+        mutation,
+      });
+      setState(nextState);
+      sendJsonMessage({
+        type: "mutation",
+        session,
+        mutation,
+      } satisfies WSMessageSend);
+    },
+    [session, playerId, state, sendJsonMessage]
+  );
+
+  const [lastMessageProcessed, setLastMessageProcessed] =
+    useState<MessageEvent<any> | null>(null);
 
   useEffect(() => {
     if (!lastMessage) return;
+    if (lastMessageProcessed === lastMessage) return;
+    setLastMessageProcessed(lastMessage);
 
-    const message = JSON.parse(lastMessage.data) as WSMessage;
+    const message = JSON.parse(lastMessage.data) as WSMessageReceive;
 
     switch (message.type) {
-      case "mutation":
-        onMutate(message.mutation);
+      case "mutation": {
+        const { nextState } = mutate(message.data);
+        setState(nextState);
         break;
+      }
 
       default:
         break;
     }
-  }, [lastMessage, onMutate]);
+  }, [lastMessage, lastMessageProcessed, onMutate]);
 
   return {
     playerId,

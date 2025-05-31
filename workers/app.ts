@@ -24,6 +24,10 @@ export default {
       return api.fetch(request, env, ctx);
     }
 
+    if (url.pathname === "/.well-known/appspecific/com.chrome.devtools.json") {
+      return new Response(null, { status: 204 });
+    }
+
     return requestHandler(request, {
       cloudflare: { env, ctx },
     });

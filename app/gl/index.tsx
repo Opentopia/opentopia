@@ -1,24 +1,63 @@
 import React, { useMemo, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { OrbitControls, OrthographicCamera, PerspectiveCamera, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import type { Tile } from 'workers/mechanics';
+import { map } from './mock';
 
-interface BlockProps {
+interface BlockProps extends Tile {
   position: [number, number, number];
   spacing: number;
+  x: number;
+  y: number;
 }
 
-const Block: React.FC<BlockProps> = ({ position, spacing }) => {
+const texMiddleware = (texture: any) => {
+  texture.forEach((t: any) => {
+    t.minFilter = THREE.NearestFilter;
+    t.magFilter = THREE.NearestFilter;
+    t.wrapS = THREE.RepeatWrapping;
+    t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(1, 1);
+    t.generateMipmaps = false;
+    t.anisotropy = 1;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.needsUpdate = true;
+  })
+}
+
+const Block: React.FC<BlockProps> = ({ position, spacing, kind, x, y }) => {
   const blockSize = 1 - spacing;
+
+  // Load cube texture for grass blocks
+  const grassTexture = useTexture([
+    '/textures/grass/grass-side.png', // positive X
+    '/textures/grass/grass-top.png', // negative X
+  ], texMiddleware) as unknown as THREE.Texture[];
+
+  const rockTexture = useTexture([
+    '/textures/stone/stone-side.png', // positive X
+    '/textures/stone/stone-top.png', // negative X
+  ], texMiddleware) as unknown as THREE.Texture[];
+
+  const materials = useMemo(() => {
+    const facemap = [0, 0, 1, 1, 0, 0]
+    return Array.from({ length: 6 }, (_, i) => {
+      return new THREE.MeshStandardMaterial({
+        map: kind === 'rock' ? rockTexture[facemap[i]] : grassTexture[facemap[i]]
+      })
+    })
+  }, [grassTexture])
   
   return (
-    <mesh position={position}>
+    // @ts-ignore
+    <mesh position={position} material={materials}>
       <boxGeometry args={[blockSize, blockSize, blockSize]} />
-      <meshStandardMaterial 
-        color="red" 
+      {/* <meshStandardMaterial 
+        color={kind === 'rock' ? color : undefined}
         roughness={0.3}
         metalness={0.1}
-      />
+      /> */}
     </mesh>
   );
 };
@@ -26,30 +65,46 @@ const Block: React.FC<BlockProps> = ({ position, spacing }) => {
 interface GridProps {
   gridSize: number;
   spacing: number;
+  map: Record<string, Tile>;
 }
 
-const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1 }) => {
+const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
   const blocks = useMemo(() => {
     const blockArray: React.ReactElement[] = [];
-    const offset = (gridSize - 1) / 2;
     
-    for (let x = 0; x < gridSize; x++) {
-      for (let z = 0; z < gridSize; z++) {
-        const posX = x - offset;
-        const posZ = z - offset;
-        
-        blockArray.push(
-          <Block
-            key={`block-${x}-${z}`}
-            position={[posX, 0, posZ]}
-            spacing={spacing}
-          />
-        );
-      }
-    }
+    // Calculate the actual bounds of the map
+    const tiles = Object.values(map);
+    if (tiles.length === 0) return [];
+    
+    const minX = Math.min(...tiles.map(tile => tile.x));
+    const maxX = Math.max(...tiles.map(tile => tile.x));
+    const minY = Math.min(...tiles.map(tile => tile.y));
+    const maxY = Math.max(...tiles.map(tile => tile.y));
+    
+    // Calculate center offset based on actual map bounds
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minY + maxY) / 2;
+    
+    // Iterate over the map entries instead of creating a generic grid
+    Object.entries(map).forEach(([key, tile]) => {
+      const posX = tile.x - centerX;
+      const posZ = tile.y - centerZ;
+      
+      blockArray.push(
+        <Block
+          key={`block-${tile.x}-${tile.y}`}
+          position={[posX, 0, posZ]}
+          spacing={spacing}
+          x={tile.x}
+          y={tile.y}
+          kind={tile.kind}
+          building={tile.building}
+        />
+      );
+    });
     
     return blockArray;
-  }, [gridSize, spacing]);
+  }, [gridSize, spacing, map]);
 
   return <>{blocks}</>;
 };
@@ -128,7 +183,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
   return (
     <>
-      <points ref={pointsRef}>
+      <points  frustumCulled={false} ref={pointsRef}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
@@ -140,16 +195,16 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
         </bufferGeometry>
         <pointsMaterial
           color={color}
-          size={0.1}
-          sizeAttenuation={true}
-          transparent={true}
-          opacity={0.8}
+          size={2}
+          sizeAttenuation={false}
+          transparent={false}
+          opacity={1}
         />
       </points>
       
       {/* Debug Cube */}
       {showDebugCube && (
-        <mesh position={position}>
+        <mesh frustumCulled={false} position={position}>
           <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
           <meshBasicMaterial 
             color="red" 
@@ -167,7 +222,7 @@ interface MapProps {
   spacing?: number;
 }
 
-export const Map = ({ spacing = 0.1 }: MapProps) => {
+export const Game = ({ spacing = 0.1 }: MapProps) => {
   return (
     <Canvas
       style={{ width: '100%', height: '100vh' }}
@@ -184,18 +239,10 @@ export const Map = ({ spacing = 0.1 }: MapProps) => {
       />
       
       {/* Lighting */}
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.5} />
       <directionalLight
         position={[10, 20, 10]}
         intensity={1}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
       />
       
       {/* Coordinate Axes */}
@@ -212,21 +259,21 @@ export const Map = ({ spacing = 0.1 }: MapProps) => {
       />
       
       {/* Grid of Blocks */}
-      <Grid gridSize={32} spacing={spacing} />
+      <Grid gridSize={32} spacing={spacing} map={map} />
       
       {/* Ground Plane */}
-      <mesh 
+      {/* <mesh 
         rotation={[-Math.PI / 2, 0, 0]} 
         position={[0, -0.5, 0]}
         receiveShadow
       >
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial 
-          color="#333333" 
+          color="red" 
           transparent 
           opacity={0.3}
         />
-      </mesh>
+      </mesh> */}
       
       {/* Controls */}
       <OrbitControls
@@ -261,8 +308,8 @@ interface GLProps {
 
 export const GL = ({ spacing = 0.1 }: GLProps) => {
   return (
-    <>
-      <Map spacing={spacing} />
-    </>
+    
+      <Game spacing={spacing} />
+    
   );
 };
