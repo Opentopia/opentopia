@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -8,10 +8,12 @@ import {
   Billboard,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { Tile, State, Unit } from "workers/mechanics";
+import type { Tile, State, Unit, TileKey } from "workers/mechanics";
 import { useGlobalStore } from "../store/global";
 
-const SPACING = 0.01;
+const SPACING = 0.05;
+
+const fogMaterial = new THREE.MeshStandardMaterial({ color: "white" });
 
 const useMapBounds = (map: Record<string, Tile>) => {
   return useMemo(() => {
@@ -31,12 +33,14 @@ const useMapBounds = (map: Record<string, Tile>) => {
 };
 
 interface BlockProps extends Tile {
+  tileKey: TileKey;
   position: [number, number, number];
   spacing: number;
   x: number;
   y: number;
   onHover: (x: number, y: number) => void;
   onLeave: () => void;
+  onClick: (tileKey: TileKey) => void;
 }
 
 const texMiddleware = (texture: any) => {
@@ -57,10 +61,12 @@ const Block: React.FC<BlockProps> = ({
   position,
   spacing,
   kind,
+  tileKey,
   x,
   y,
   onHover,
   onLeave,
+  onClick,
 }) => {
   const blockSize = 1 - spacing;
 
@@ -82,6 +88,17 @@ const Block: React.FC<BlockProps> = ({
   ) as unknown as THREE.Texture[];
 
   const materials = useMemo(() => {
+    if (kind === "fog") {
+      return [
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+      ];
+    }
+
     const top = new THREE.MeshStandardMaterial({
       map: kind === "rock" ? rockTexture[1] : grassTexture[1],
     });
@@ -106,8 +123,7 @@ const Block: React.FC<BlockProps> = ({
 
   const handleClick = (e: any) => {
     e.stopPropagation();
-    console.log("clicked block", x, y, e);
-    // Add click logic here - for now just console log
+    onClick(tileKey);
   };
 
   return (
@@ -133,16 +149,67 @@ interface GridProps {
 
 const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
   const gridSize = Math.sqrt(Object.keys(map).length);
-  const { hoveredBlock, hoverBlock } = useGlobalStore();
+  const {
+    hoveredBlock,
+    hoverBlock,
+    gameState,
+    selectUnit,
+    onMutate,
+    playerId,
+  } = useGlobalStore();
   const blockSize = 1 - spacing;
+  const selectedUnit = useGlobalStore(s => s.selectedUnit);
+  const isPlayersTurn = gameState?.turn?.playerId === playerId;
 
-  const handleHover = (x: number, y: number) => {
-    hoverBlock(`${x},${y}`);
-  };
+  const handleHover = useCallback(
+    (x: number, y: number) => {
+      if (!isPlayersTurn) return;
+      hoverBlock(`${x},${y}`);
+    },
+    [hoverBlock],
+  );
 
-  const handleLeave = () => {
+  const handleLeave = useCallback(() => {
     hoverBlock(null);
-  };
+  }, [hoverBlock]);
+
+  const handleClick = useCallback(
+    (key: `${number},${number}`) => {
+      console.log("clicked block", key);
+      console.log({ gameState });
+
+      if (!isPlayersTurn) return;
+
+      if (!gameState) {
+        selectUnit(null);
+        return;
+      }
+
+      // If a unit is already selected, try to move it
+      if (selectedUnit) {
+        const unit = gameState.units.find(u => u.id === selectedUnit);
+        if (unit && unit.tileKey !== key) {
+          // Send move mutation
+          onMutate({
+            type: "move",
+            to: key,
+            unitId: selectedUnit,
+          });
+          selectUnit(null);
+          return;
+        }
+      }
+
+      // Otherwise, select the unit on this tile (if any)
+      const unit = gameState.units.find(u => u.tileKey === key);
+      if (unit) {
+        selectUnit(unit.id);
+      } else {
+        selectUnit(null);
+      }
+    },
+    [gameState, selectUnit, selectedUnit, onMutate],
+  );
 
   // Calculate map bounds and center offsets - shared logic
   const mapBounds = useMapBounds(map);
@@ -156,12 +223,14 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
 
     // Iterate over the map entries instead of creating a generic grid
     Object.entries(map).forEach(([key, tile]) => {
+      const tileKey = key as TileKey;
       const posX = tile.x - centerX;
       const posZ = tile.y - centerZ;
 
       blockArray.push(
         <Block
           key={`block-${tile.x}-${tile.y}`}
+          tileKey={tileKey}
           position={[posX, 0, posZ]}
           spacing={spacing}
           x={tile.x}
@@ -170,6 +239,7 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
           building={tile.building}
           onHover={handleHover}
           onLeave={handleLeave}
+          onClick={handleClick}
         />,
       );
     });
@@ -331,6 +401,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
 const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
   const swordTexture = useTexture("/textures/sword.png");
+  const selectedUnit = useGlobalStore(s => s.selectedUnit);
   const myId = useGlobalStore(s => s.playerId);
   const mapBounds = useMapBounds(map);
   const unitSize = 0.4;
@@ -340,23 +411,29 @@ const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
   const renderUnits = useMemo(() => {
     if (!mapBounds) return [];
 
-    return units.map(unit => {
-      const posX = map[unit.tileKey].x - mapBounds.centerX;
-      const posZ = map[unit.tileKey].y - mapBounds.centerZ;
-      const posY = blockSize / 2 + unitSize / 2;
+    return units
+      .filter(unit => {
+        const tile = map[unit.tileKey];
+        return tile && tile.kind !== "fog";
+      })
+      .map(unit => {
+        const posX = map[unit.tileKey].x - mapBounds.centerX;
+        const posZ = map[unit.tileKey].y - mapBounds.centerZ;
+        const baseY = blockSize / 2 + unitSize / 2;
+        const posY = unit.id === selectedUnit ? baseY + 0.25 : baseY;
 
-      return {
-        id: unit.id,
-        isOwnedByMe: unit.ownedBy === myId,
-        position: [posX, posY, posZ] as const,
-        spritePosition: [
-          posX - 0.15,
-          posY + unitSize / 2 + spriteSize / 2 + 0.1,
-          posZ,
-        ] as const,
-      };
-    });
-  }, [units, map, mapBounds]);
+        return {
+          id: unit.id,
+          isOwnedByMe: unit.ownedBy === myId,
+          position: [posX, posY, posZ] as const,
+          spritePosition: [
+            posX - 0.15,
+            posY + unitSize / 2 + spriteSize / 2 + 0.1,
+            posZ,
+          ] as const,
+        };
+      });
+  }, [units, map, mapBounds, selectedUnit]);
 
   return (
     <>
@@ -421,9 +498,10 @@ interface MapProps {
 
 export const Game = ({ spacing = SPACING }: MapProps) => {
   const gameState = useGlobalStore(s => s.gameState);
+  const map = useGlobalStore(s => s.mapView);
   const myId = useGlobalStore(s => s.playerId);
 
-  if (!gameState) return null;
+  if (!gameState || !map) return null;
 
   return (
     <Canvas style={{ width: "100%", height: "100vh" }} gl={{ antialias: true }}>
@@ -456,37 +534,11 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
       />
 
       {/* Grid of Blocks */}
-      <Grid spacing={spacing} map={gameState.map} />
+      <Grid spacing={spacing} map={map} />
 
-      <Buildings map={gameState.map} />
+      <Buildings map={map} />
 
-      <Units
-        units={[
-          {
-            id: "1",
-            tileKey: "1,1",
-            type: "warrior",
-            attack: 10,
-            defense: 10,
-            range: 1,
-            movement: 1,
-            health: 100,
-            ownedBy: "1",
-          },
-          {
-            id: "2",
-            tileKey: "1,2",
-            type: "warrior",
-            attack: 10,
-            defense: 10,
-            range: 1,
-            movement: 1,
-            health: 100,
-            ownedBy: myId!!,
-          },
-        ]}
-        map={gameState.map}
-      />
+      <Units units={gameState.units} map={map} />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls

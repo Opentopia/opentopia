@@ -29,16 +29,7 @@ export default function GamePage() {
 
   if (!state) return <div>Loading...</div>;
 
-  if (showLobby && id) {
-    return (
-      <div className="fixed w-screen h-screen">
-        {/* <GL /> */}
-        <button onClick={() => mutate({ type: "start-game" })}>
-          start game HOBO
-        </button>
-      </div>
-    );
-  }
+  if (showLobby) return null;
 
   return (
     <div className="fixed w-screen h-screen">
@@ -61,17 +52,26 @@ export default function GamePage() {
             Test move
           </button>
           <button
-            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
-            onClick={() => mutate({ type: "end-turn" })}
-          >
-            End turn
-          </button>
-          <button
             className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm"
             onClick={handleBackToHome}
           >
             Back to home
           </button>
+          {state.turn?.playerId === playerId ? (
+            <button
+              className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+              onClick={() => mutate({ type: "end-turn" })}
+            >
+              End turn
+            </button>
+          ) : (
+            <span
+              className="bg-gray-600  px-3 py-1 rounded text-sm"
+              onClick={() => mutate({ type: "end-turn" })}
+            >
+              Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
+            </span>
+          )}
         </div>
       </div>
     </div>
