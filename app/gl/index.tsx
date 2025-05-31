@@ -5,13 +5,13 @@ import {
   OrthographicCamera,
   useGLTF,
   useTexture,
+  Billboard,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { Tile, State } from "workers/mechanics";
-import { map } from "./mock";
+import type { Tile, State, Unit } from "workers/mechanics";
 import { useGlobalStore } from "../store/global";
 
-const SPACING = 0.1;
+const SPACING = 0.01;
 
 const useMapBounds = (map: Record<string, Tile>) => {
   return useMemo(() => {
@@ -329,6 +329,62 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
   );
 };
 
+const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
+  const swordTexture = useTexture("/textures/sword.png");
+  const myId = useGlobalStore(s => s.playerId);
+  const mapBounds = useMapBounds(map);
+  const unitSize = 0.4;
+  const blockSize = 1 - SPACING;
+  const spriteSize = 0.5;
+
+  const renderUnits = useMemo(() => {
+    if (!mapBounds) return [];
+
+    return units.map(unit => {
+      const posX = map[unit.tileKey].x - mapBounds.centerX;
+      const posZ = map[unit.tileKey].y - mapBounds.centerZ;
+      const posY = blockSize / 2 + unitSize / 2;
+
+      return {
+        id: unit.id,
+        isOwnedByMe: unit.ownedBy === myId,
+        position: [posX, posY, posZ] as const,
+        spritePosition: [
+          posX - 0.15,
+          posY + unitSize / 2 + spriteSize / 2 + 0.1,
+          posZ,
+        ] as const,
+      };
+    });
+  }, [units, map, mapBounds]);
+
+  return (
+    <>
+      {renderUnits.map(({ id, position, spritePosition, isOwnedByMe }) => (
+        <group key={id}>
+          {/* Unit cube */}
+          <mesh position={position}>
+            <boxGeometry args={[unitSize, unitSize, unitSize]} />
+            <meshStandardMaterial
+              color={isOwnedByMe ? "green" : "red"}
+              roughness={0}
+              metalness={0.1}
+            />
+          </mesh>
+
+          {/* Billboard sprite above unit */}
+          <Billboard position={spritePosition}>
+            <mesh>
+              <planeGeometry args={[spriteSize, spriteSize]} />
+              <meshBasicMaterial map={swordTexture} transparent />
+            </mesh>
+          </Billboard>
+        </group>
+      ))}
+    </>
+  );
+};
+
 const Buildings = ({ map }: { map: State["map"] }) => {
   const buildingModel = useGLTF("/models/village.glb");
   const mapBounds = useMapBounds(map);
@@ -365,6 +421,7 @@ interface MapProps {
 
 export const Game = ({ spacing = SPACING }: MapProps) => {
   const gameState = useGlobalStore(s => s.gameState);
+  const myId = useGlobalStore(s => s.playerId);
 
   if (!gameState) return null;
 
@@ -402,6 +459,34 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
       <Grid spacing={spacing} map={gameState.map} />
 
       <Buildings map={gameState.map} />
+
+      <Units
+        units={[
+          {
+            id: "1",
+            tileKey: "1,1",
+            type: "warrior",
+            attack: 10,
+            defense: 10,
+            range: 1,
+            movement: 1,
+            health: 100,
+            ownedBy: "1",
+          },
+          {
+            id: "2",
+            tileKey: "1,2",
+            type: "warrior",
+            attack: 10,
+            defense: 10,
+            range: 1,
+            movement: 1,
+            health: 100,
+            ownedBy: myId!!,
+          },
+        ]}
+        map={gameState.map}
+      />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls
