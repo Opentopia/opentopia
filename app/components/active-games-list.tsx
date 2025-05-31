@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Card } from "./card";
-import { Button } from "./button";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 import { Link } from "react-router";
 import type { GamesListResponse } from "workers/shared-types";
 

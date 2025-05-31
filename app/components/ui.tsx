@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "./ui/button";
 import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
-import { ActiveGamesList } from "./ui/active-games-list";
+import { ActiveGamesList } from "./active-games-list";
 import { useState } from "react";
 import {
   Link,
@@ -14,6 +14,7 @@ import {
 import { type SVGProps } from "react";
 import type { CreateGameResponse } from "workers/shared-types";
 import { useGame } from "@/hooks/use-game";
+import { PlayersLobby } from "./players-lobby";
 
 export const UI = () => {
   const { id } = useParams();
@@ -34,6 +35,8 @@ export const UI = () => {
 
   if (debug) return null;
 
+  const isLobby = isGameRoute && id && state?.status === "lobby" && playerId;
+
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
       <Card className="p-2 flex flex-row pointer-events-auto gap-0">
@@ -48,18 +51,20 @@ export const UI = () => {
             </p>
           </div>
 
-          {isGameRoute && id && state ? (
-            <GameActions id={id} />
-          ) : (
-            <HomeActions />
-          )}
+          {isLobby ? <GameActions id={id} /> : <HomeActions />}
 
           <span className="mt-auto text-xs text-foreground/50">
             JOYCO x BaseHub 2025©
           </span>
         </div>
         <div className="w-full md:w-[450px]">
-          <ActiveGamesList className="w-full" onJoinGame={handleJoinGame} />
+          {isLobby ? (
+            <>
+              <PlayersLobby playerId={playerId} />
+            </>
+          ) : (
+            <ActiveGamesList className="w-full" onJoinGame={handleJoinGame} />
+          )}
         </div>
       </Card>
     </div>

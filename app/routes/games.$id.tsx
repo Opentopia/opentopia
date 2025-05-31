@@ -1,6 +1,5 @@
 import type { Route } from "./+types/home";
 import { useParams, useNavigate } from "react-router";
-import { GameLobby } from "@/components/ui/game-lobby";
 import { GL } from "@/gl";
 import { useGame } from "@/hooks/use-game";
 
@@ -37,11 +36,6 @@ export default function GamePage() {
         <button onClick={() => mutate({ type: "start-game" })}>
           start game HOBO
         </button>
-        <GameLobby
-          gameId={id}
-          gameCode={gameCode}
-          onBackToHome={handleBackToHome}
-        />
       </div>
     );
   }
