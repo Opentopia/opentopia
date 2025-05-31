@@ -40,7 +40,7 @@ export default function GamePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 gap-4 flex items-end justify-between p-3 md:p-6"
+            className="fixed inset-0 gap-4 flex items-end justify-between p-3 md:p-6 pointer-events-none"
           >
             <div className="absolute top-4 left-1/2 -translate-x-1/2 text-background font-bold font-display text-[40px]">
               <AnimatePresence mode="wait">
@@ -58,7 +58,7 @@ export default function GamePage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className=""
+                    className="max-md:text-sm"
                   >
                     Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
                   </motion.span>

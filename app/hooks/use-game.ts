@@ -39,6 +39,7 @@ export const useGame = (id: string | undefined) => {
       return data;
     },
     enabled: !!id,
+    staleTime: Infinity,
   });
 
   const session = data?.session;
