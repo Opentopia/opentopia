@@ -7,6 +7,11 @@ const UNIT_COST: Record<UnitType, number> = {
   archer: 3,
 };
 
+const UNIT_BASE_MOVEMENT: Record<UnitType, number> = {
+  warrior: 1,
+  archer: 1,
+};
+
 /* -------------------------------------------------------------------------------------------------
  * Entities
  * -----------------------------------------------------------------------------------------------*/
@@ -130,10 +135,68 @@ export function mutate({
 
       // Move the unit
       unit.tileKey = mutation.to;
+      unit.movement = 0; // Units can only move once per turn
       break;
     }
-    case "attack":
+    case "attack": {
+      // Find attacker and target units
+      const attacker = nextState.units.find((u) => u.id === mutation.unitId);
+      const defender = nextState.units.find(
+        (u) => u.id === mutation.targetUnitId
+      );
+
+      if (!attacker) throw new Error("Attacker unit not found");
+      if (!defender) throw new Error("Defender unit not found");
+      if (attacker.ownedBy !== playerId)
+        throw new Error("You do not own the attacking unit");
+      if (defender.ownedBy === playerId)
+        throw new Error("Cannot attack your own unit");
+
+      // Check range
+      const [ax, ay] = parseTileKey(attacker.tileKey);
+      const [dx, dy] = parseTileKey(defender.tileKey);
+      const chebyshev = Math.max(Math.abs(ax - dx), Math.abs(ay - dy));
+      if (chebyshev > attacker.range || chebyshev === 0)
+        throw new Error("Target out of range");
+
+      // Attack and defense formulas
+      const attackerMaxHp = 10;
+      const defenderMaxHp = 10;
+      const attackForce = attacker.attack * (attacker.health / attackerMaxHp);
+      const defenseForce = defender.defense * (defender.health / defenderMaxHp);
+      const totalDamage = attackForce + defenseForce;
+      const attackResult = Math.round(
+        (attackForce / totalDamage) * attacker.attack * 4.5
+      );
+
+      // Apply minimum damage = 1
+      const damageToDefender = Math.max(1, attackResult);
+
+      // Apply damage to defender
+      defender.health -= damageToDefender;
+
+      // If defender survives, recalculate defenseForce and apply counterattack
+      if (defender.health > 0) {
+        const newDefenseForce =
+          defender.defense * (defender.health / defenderMaxHp);
+        const newTotalDamage = attackForce + newDefenseForce;
+        const defenseResult = Math.round(
+          (newDefenseForce / newTotalDamage) * defender.defense * 4.5
+        );
+        const damageToAttacker = Math.max(1, defenseResult);
+        attacker.health -= damageToAttacker;
+      }
+
+      // Remove units with 0 or less health
+      nextState.units = nextState.units.filter((u) => u.health > 0);
+
+      // If defender died and attacker is melee (range 1), move attacker into defender's tile
+      if (defender.health <= 0 && attacker.range === 1) {
+        attacker.tileKey = defender.tileKey;
+      }
+
       break;
+    }
     case "spawn": {
       // Ensure the tile exists
       const tile = nextState.map[mutation.tileKey];
