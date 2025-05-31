@@ -1,4 +1,5 @@
 import { createRequestHandler } from "react-router";
+export { Game } from "./game";
 
 declare module "react-router" {
   export interface AppLoadContext {
