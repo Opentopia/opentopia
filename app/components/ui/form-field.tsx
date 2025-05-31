@@ -31,7 +31,7 @@ function FormField({
 }: FormFieldProps) {
   return (
     <div className={cn(formFieldVariants({ align }), className)}>
-      <label className="font-medium text-foreground/70" htmlFor={htmlFor}>
+      <label className="font-medium text-foreground/60" htmlFor={htmlFor}>
         {label}
       </label>
       {children}

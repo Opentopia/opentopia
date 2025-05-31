@@ -5,11 +5,16 @@ import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
 import { ActiveGamesList } from "./ui/active-games-list";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { type SVGProps } from "react";
 import type { CreateGameResponse } from "workers/shared-types";
+import { useGame } from "@/hooks/use-game";
 
 export const UI = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { playerId, state, mutate } = useGame(id);
+
   const [isCreatingGame, setIsCreatingGame] = useState(false);
 
   const handleCreateGame = async () => {
