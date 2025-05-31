@@ -152,6 +152,7 @@ export class Game extends DurableObject {
       name: "Player",
       view: [],
       stars: 0,
+      colors: ["", ""],
     };
 
     const session = await sealData({ playerId: player.id }, sessionOptions);
