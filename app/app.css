@@ -63,6 +63,10 @@ body {
   --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-tertiary-hover: var(--tertiary-hover);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -100,6 +104,9 @@ body {
   --secondary: oklch(0.5218 0.1515 259.65);
   --secondary-foreground: oklch(0 0 0);
   --secondary-hover: oklch(0.61 0.1681 259.39);
+  --tertiary: oklch(0.6301 0 0);
+  --tertiary-foreground: oklch(0 0 0);
+  --tertiary-hover: oklch(0.6601 0 0);
   --muted: oklch(0.97 0.001 106.424);
   --muted-foreground: oklch(0.553 0.013 58.071);
   --accent: oklch(0.97 0.001 106.424);
@@ -167,5 +174,10 @@ body {
     box-shadow:
       -4px -4px 0px 0px rgba(0, 0, 0, 0.2) inset,
       2px 2px 0px 0px rgba(255, 255, 255, 0.3) inset;
+  }
+
+  .shadow-card-inset-secondary {
+    box-shadow: -2px -2px 0px 0px rgba(0, 0, 0, 0.2) inset,
+      1px 1px 0px 0px rgba(255, 255, 255, 0.3) inset;
   }
 }

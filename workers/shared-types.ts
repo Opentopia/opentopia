@@ -26,3 +26,15 @@ export type JoinResponse =
       success: false;
       error: "game ended" | "game started";
     };
+
+export type GameListItem = {
+  id: string;
+  state: State;
+};
+
+export type GamesListResponse = GameListItem[];
+
+export type CreateGameResponse = {
+  id: string;
+  state: State;
+};

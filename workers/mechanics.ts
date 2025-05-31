@@ -1,4 +1,5 @@
 import { parseTileKey } from "./utils";
+import { generateMap } from "./generate-map";
 
 type UnitType = "warrior" | "archer";
 
@@ -11,6 +12,8 @@ const UNIT_BASE_MOVEMENT: Record<UnitType, number> = {
   warrior: 1,
   archer: 1,
 };
+
+const TURN_DURATION = 60_000; // 1 minute
 
 /* -------------------------------------------------------------------------------------------------
  * Entities
@@ -38,8 +41,8 @@ export type Tile = {
 
 export type Building = {
   type: "village";
-  ownedBy: string;
-  raidedBy?: string;
+  ownedBy: string | null;
+  raidedBy: string | null;
 };
 
 export type Unit = {
@@ -56,6 +59,7 @@ export type Unit = {
 
 export type Player = {
   id: string;
+  isHost?: boolean;
   name: string;
   view: TileKey[];
   stars: number;
@@ -86,11 +90,17 @@ export type Mutation =
       tileKey: TileKey;
     }
   | {
+      type: "start-game";
+    }
+  | {
       type: "end-turn";
     }
   | {
       type: "join-game";
       player: Player;
+    }
+  | {
+      type: "resign";
     };
 
 export type MutateProps = {
@@ -106,7 +116,7 @@ export function mutate({
   currentState,
   mutation,
 }: MutateProps): { nextState: State } {
-  const nextState = structuredClone(currentState);
+  let nextState = structuredClone(currentState);
 
   switch (mutation.type) {
     case "move": {
@@ -254,22 +264,77 @@ export function mutate({
         }
       }
 
+      // 3. Reset movement for all units owned by nextPlayer
+      for (const unit of nextState.units) {
+        if (unit.ownedBy === nextPlayer.id) {
+          unit.movement = UNIT_BASE_MOVEMENT[unit.type];
+        }
+      }
+
       nextState.turn = {
         playerId: nextPlayer.id,
-        until: Date.now() + 30_000,
+        until: Date.now() + TURN_DURATION,
       };
       break;
     }
     case "join-game": {
-      nextState.players.push(mutation.player);
-      if (nextState.players.length === 1) {
-        // is first player. give it the first turn
-        nextState.turn = {
-          playerId: mutation.player.id,
-          until: Date.now() + 30_000,
-        };
+      nextState.players.push({
+        ...mutation.player,
+        isHost: nextState.players.length === 0,
+      });
+
+      break;
+    }
+    case "resign": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+      nextState = mutate({
+        playerId,
+        timestamp,
+        currentState: nextState,
+        mutation: { type: "end-turn" },
+      }).nextState;
+
+      // Remove player from players array
+      nextState.players = nextState.players.filter(p => p.id !== playerId);
+
+      // Set all their villages to neutral
+      for (const tile of Object.values(nextState.map)) {
+        if (
+          tile.building &&
+          tile.building.type === "village" &&
+          tile.building.ownedBy === playerId
+        ) {
+          tile.building.ownedBy = null;
+        }
       }
 
+      // Remove all their units
+      nextState.units = nextState.units.filter(u => u.ownedBy !== playerId);
+
+      // If only one player left, finish the game
+      if (nextState.players.length <= 1) {
+        nextState.status = "finished";
+        nextState.turn = null;
+      }
+      break;
+    }
+    case "start-game": {
+      // ensure player is host
+      const player = nextState.players.find(p => p.id === playerId);
+      if (!player) {
+        throw new Error("Player not found");
+      }
+      if (!player.isHost) {
+        throw new Error("You are not the host");
+      }
+      nextState.status = "started";
+      nextState.map = generateMap(nextState.players.length);
+      nextState.turn = {
+        playerId: player.id,
+        until: Date.now() + TURN_DURATION,
+      };
       break;
     }
     default:

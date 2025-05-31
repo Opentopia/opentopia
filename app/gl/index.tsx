@@ -7,8 +7,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { Tile } from "workers/mechanics";
-
+import type { Tile, State } from "workers/mechanics";
 import { map } from "./mock";
 import { useGlobalStore } from "../store/global";
 
@@ -362,9 +361,10 @@ const Buildings = () => {
 
 interface MapProps {
   spacing?: number;
+  state: State;
 }
 
-export const Game = ({ spacing = SPACING }: MapProps) => {
+export const Game = ({ spacing = SPACING, state }: MapProps) => {
   return (
     <Canvas style={{ width: "100%", height: "100vh" }} gl={{ antialias: true }}>
       <color attach="background" args={["#000000"]} />
@@ -396,7 +396,7 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
       />
 
       {/* Grid of Blocks */}
-      <Grid gridSize={32} spacing={spacing} map={map} />
+      <Grid gridSize={32} spacing={spacing} map={state.map} />
 
       <Buildings />
 
@@ -430,8 +430,9 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
 
 interface GLProps {
   spacing?: number;
+  state: State;
 }
 
-export const GL = ({ spacing = SPACING }: GLProps) => {
-  return <Game spacing={spacing} />;
+export const GL = ({ spacing = SPACING, state }: GLProps) => {
+  return <Game spacing={spacing} state={state} />;
 };
