@@ -189,6 +189,19 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
       if (selectedUnit) {
         const unit = gameState.units.find(u => u.id === selectedUnit);
         if (unit && unit.tileKey !== key) {
+          const unitInTarget = gameState.units.find(
+            u => u.tileKey === key && u.ownedBy === playerId,
+          );
+          if (unitInTarget) {
+            onMutate({
+              type: "attack",
+              unitId: selectedUnit,
+              targetUnitId: unitInTarget.id,
+            });
+            selectUnit(null);
+            return;
+          }
+
           // Send move mutation
           onMutate({
             type: "move",
