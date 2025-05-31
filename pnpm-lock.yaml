@@ -14,6 +14,9 @@ importers:
       '@react-three/fiber':
         specifier: ^9.1.2
         version: 9.1.2(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(three@0.177.0)
+      hono:
+        specifier: ^4.7.10
+        version: 4.7.10
       isbot:
         specifier: ^5.1.27
         version: 5.1.28
@@ -29,6 +32,9 @@ importers:
       react-router:
         specifier: ^7.5.3
         version: 7.6.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react-use-websocket:
+        specifier: ^4.13.0
+        version: 4.13.0
       three:
         specifier: ^0.177.0
         version: 0.177.0
@@ -1319,6 +1325,10 @@ packages:
   hls.js@1.6.4:
     resolution: {integrity: sha512-sxFS61suCMJBvpOhmi4WLnarOZ8S8JAxK5J1icvrkopE8aRMc1pRB9WZWMX5Obh9nieVEML6uLLeyGksapyX5A==}
 
+  hono@4.7.10:
+    resolution: {integrity: sha512-QkACju9MiN59CKSY5JsGZCYmPZkA6sIW6OFCUp7qDjZu6S6KHtJHhAc9Uy9mV9F8PJ1/HQ3ybZF2yjCa/73fvQ==}
+    engines: {node: '>=16.9.0'}
+
   hosted-git-info@6.1.3:
     resolution: {integrity: sha512-HVJyzUrLIL1c0QmviVh5E8VGyUS7xCFPS6yydaVd1UegW+ibV/CohqTH9MkOLDp5o+rb82DMo77PTuc9F/8GKw==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
@@ -1638,6 +1648,9 @@ packages:
     peerDependenciesMeta:
       react-dom:
         optional: true
+
+  react-use-websocket@4.13.0:
+    resolution: {integrity: sha512-anMuVoV//g2N76Wxqvqjjo1X48r9Np3y1/gMl7arX84tAPXdy5R7sB5lO5hvCzQRYjqXwV8XMAiEBOUbyrZFrw==}
 
   react@19.1.0:
     resolution: {integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==}
@@ -3151,6 +3164,8 @@ snapshots:
 
   hls.js@1.6.4: {}
 
+  hono@4.7.10: {}
+
   hosted-git-info@6.1.3:
     dependencies:
       lru-cache: 7.18.3
@@ -3415,6 +3430,8 @@ snapshots:
       react: 19.1.0
     optionalDependencies:
       react-dom: 19.1.0(react@19.1.0)
+
+  react-use-websocket@4.13.0: {}
 
   react@19.1.0: {}
 
