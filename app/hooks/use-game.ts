@@ -105,14 +105,30 @@ export const useGame = (id: string | undefined) => {
   }, [lastMessage, lastMessageProcessed, onMutate]);
 
   useEffect(() => {
-    useGlobalStore.setState({ gameState: state, mapView: {} });
-  }, [state]);
+    if (!playerId) return;
+
+    useGlobalStore.setState(prev => {
+      const player = state?.players.find(p => p.id === playerId);
+      if (!player) return prev;
+
+      return {
+        playerId,
+        gameState: state,
+        onMutate,
+        mapView: Object.fromEntries(
+          Object.entries(state?.map ?? {}).map(([key, tile]) => {
+            if (player.view.includes(key as `${number},${number}`))
+              return [key, tile];
+            return [key, { ...tile, kind: "fog", building: null }];
+          }),
+        ),
+      };
+    });
+  }, [state, playerId, onMutate]);
 
   return {
     playerId,
     state,
-    mutate: (mutation: Mutation) => {
-      onMutate(mutation);
-    },
+    mutate: onMutate,
   };
 };
