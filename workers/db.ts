@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { env } from "cloudflare:workers";
+import { Game } from "./game";
 
 export class DB extends DurableObject {
   constructor(state: DurableObjectState, env: Env) {
@@ -11,7 +12,7 @@ export class DB extends DurableObject {
   }
 
   async createGame() {
-    const id = crypto.randomUUID();
+    const id = Game.getGameId();
     this.ctx.storage.sql.exec<{
       id: string;
     }>("insert into games (id) values (?)", [id]);

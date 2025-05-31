@@ -329,7 +329,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
   );
 };
 
-const Buildings = () => {
+const Buildings = ({ map }: { map: State["map"] }) => {
   const buildingModel = useGLTF("/models/village.glb");
   const mapBounds = useMapBounds(map);
   const blockSize = 1 - SPACING;
@@ -367,6 +367,7 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
   const gameState = useGlobalStore(s => s.gameState);
 
   if (!gameState) return null;
+
   return (
     <Canvas style={{ width: "100%", height: "100vh" }} gl={{ antialias: true }}>
       <color attach="background" args={["#000000"]} />
@@ -400,7 +401,7 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
       {/* Grid of Blocks */}
       <Grid spacing={spacing} map={gameState.map} />
 
-      <Buildings />
+      <Buildings map={gameState.map} />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls

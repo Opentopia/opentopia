@@ -8,6 +8,7 @@ import type {
   WSMessageReceive,
   WSMessageSend,
 } from "workers/shared-types";
+import { useGlobalStore } from "@/store/global";
 
 export const useGame = (id: string | undefined) => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
@@ -99,6 +100,10 @@ export const useGame = (id: string | undefined) => {
         break;
     }
   }, [lastMessage, lastMessageProcessed, onMutate]);
+
+  useEffect(() => {
+    useGlobalStore.setState({ gameState: state });
+  }, [state]);
 
   return {
     playerId,

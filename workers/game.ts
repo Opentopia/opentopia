@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import { DurableObject } from "cloudflare:workers";
 import { sealData, unsealData } from "iron-session";
 import { mutate, type Player, type State, type MutateProps } from "./mechanics";
@@ -22,12 +23,17 @@ export class Game extends DurableObject {
 
   private createGameState(): State {
     return {
+      id: Game.getGameId(),
       status: "lobby",
       map: {},
       players: [],
       units: [],
       turn: null,
     };
+  }
+
+  static getGameId() {
+    return nanoid(6).toUpperCase();
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -57,9 +63,8 @@ export class Game extends DurableObject {
       case "/join": {
         const auth = request.headers.get("authorization");
         const existingSession = auth?.split(" ")[1];
-        const { playerId: existingPlayerId } = await this.authenticate(
-          existingSession
-        );
+        const { playerId: existingPlayerId } =
+          await this.authenticate(existingSession);
 
         // if an existing player is reconnecting
         if (existingPlayerId && existingSession) {
