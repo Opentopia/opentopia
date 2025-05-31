@@ -4,12 +4,15 @@ import { OrbitControls, OrthographicCamera, PerspectiveCamera, useTexture } from
 import * as THREE from 'three';
 import type { Tile } from 'workers/mechanics';
 import { map } from './mock';
+import { useGlobalStore } from '~/store/global';
 
 interface BlockProps extends Tile {
   position: [number, number, number];
   spacing: number;
   x: number;
   y: number;
+  onHover: (x: number, y: number) => void;
+  onLeave: () => void;
 }
 
 const texMiddleware = (texture: any) => {
@@ -26,7 +29,7 @@ const texMiddleware = (texture: any) => {
   })
 }
 
-const Block: React.FC<BlockProps> = ({ position, spacing, kind, x, y }) => {
+const Block: React.FC<BlockProps> = ({ position, spacing, kind, x, y, onHover, onLeave }) => {
   const blockSize = 1 - spacing;
 
   // Load cube texture for grass blocks
@@ -41,23 +44,46 @@ const Block: React.FC<BlockProps> = ({ position, spacing, kind, x, y }) => {
   ], texMiddleware) as unknown as THREE.Texture[];
 
   const materials = useMemo(() => {
-    const facemap = [0, 0, 1, 1, 0, 0]
-    return Array.from({ length: 6 }, (_, i) => {
-      return new THREE.MeshStandardMaterial({
-        map: kind === 'rock' ? rockTexture[facemap[i]] : grassTexture[facemap[i]]
-      })
+    const top = new THREE.MeshStandardMaterial({
+      map: kind === 'rock' ? rockTexture[1] : grassTexture[1]
     })
-  }, [grassTexture])
+
+    const side = new THREE.MeshStandardMaterial({
+      map: kind === 'rock' ? rockTexture[0] : grassTexture[0]
+    })
+
+    return [side, side, top, top, side, side]
+  }, [grassTexture, rockTexture, kind])
+  
+  const handlePointerEnter = (e: any) => {
+    e.stopPropagation();
+    console.log('hover block', x, y, e);
+    onHover(x, y);
+  };
+
+  const handlePointerLeave = (e: any) => {
+    e.stopPropagation();
+    onLeave();
+  };
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    console.log('clicked block', x, y, e);
+    // Add click logic here - for now just console log
+  };
   
   return (
-    // @ts-ignore
-    <mesh position={position} material={materials}>
+    <mesh 
+      position={position} 
+      /* @ts-ignore - Three.js type version conflict */
+      material={materials} 
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onClick={handleClick}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+    >
       <boxGeometry args={[blockSize, blockSize, blockSize]} />
-      {/* <meshStandardMaterial 
-        color={kind === 'rock' ? color : undefined}
-        roughness={0.3}
-        metalness={0.1}
-      /> */}
     </mesh>
   );
 };
@@ -69,21 +95,39 @@ interface GridProps {
 }
 
 const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
-  const blocks = useMemo(() => {
-    const blockArray: React.ReactElement[] = [];
-    
-    // Calculate the actual bounds of the map
+  const { hoveredBlock, hoverBlock } = useGlobalStore()
+  const blockSize = 1 - spacing;
+
+  const handleHover = (x: number, y: number) => {
+    hoverBlock(`${x},${y}`)
+  }
+
+  const handleLeave = () => {
+    hoverBlock(null)
+  }
+
+  // Calculate map bounds and center offsets - shared logic
+  const mapBounds = useMemo(() => {
     const tiles = Object.values(map);
-    if (tiles.length === 0) return [];
+    if (tiles.length === 0) return null;
     
     const minX = Math.min(...tiles.map(tile => tile.x));
     const maxX = Math.max(...tiles.map(tile => tile.x));
     const minY = Math.min(...tiles.map(tile => tile.y));
     const maxY = Math.max(...tiles.map(tile => tile.y));
     
-    // Calculate center offset based on actual map bounds
     const centerX = (minX + maxX) / 2;
     const centerZ = (minY + maxY) / 2;
+    
+    return { minX, maxX, minY, maxY, centerX, centerZ };
+  }, [map]);
+  
+  const blocks = useMemo(() => {
+    const blockArray: React.ReactElement[] = [];
+    
+    if (!mapBounds) return [];
+    
+    const { centerX, centerZ } = mapBounds;
     
     // Iterate over the map entries instead of creating a generic grid
     Object.entries(map).forEach(([key, tile]) => {
@@ -99,14 +143,46 @@ const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
           y={tile.y}
           kind={tile.kind}
           building={tile.building}
+          onHover={handleHover}
+          onLeave={handleLeave}
         />
       );
     });
     
     return blockArray;
-  }, [gridSize, spacing, map]);
+  }, [gridSize, spacing, map, mapBounds]);
 
-  return <>{blocks}</>;
+  // Calculate hover indicator position
+  const hoverIndicatorPosition = useMemo(() => {
+    if (!hoveredBlock || !mapBounds) return null;
+    
+    const [x, y] = hoveredBlock.split(',').map(Number);
+    const { centerX, centerZ } = mapBounds;
+    
+    const posX = x - centerX;
+    const posZ = y - centerZ;
+    
+    return [posX, blockSize/2 + 0.01, posZ] as [number, number, number];
+  }, [hoveredBlock, mapBounds, blockSize]);
+
+  return (
+    <>
+      {blocks}
+      
+      {/* Single hover indicator */}
+      {hoveredBlock && hoverIndicatorPosition && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={hoverIndicatorPosition}>
+          <planeGeometry args={[blockSize, blockSize]} />
+          <meshBasicMaterial 
+            color="#ffffff" 
+            transparent 
+            opacity={0.5}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
+    </>
+  );
 };
 
 interface FloatingStarsProps {
@@ -261,21 +337,7 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
       {/* Grid of Blocks */}
       <Grid gridSize={32} spacing={spacing} map={map} />
       
-      {/* Ground Plane */}
-      {/* <mesh 
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -0.5, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial 
-          color="red" 
-          transparent 
-          opacity={0.3}
-        />
-      </mesh> */}
-      
-      {/* Controls */}
+      {/* Controls - Fixed mouse button configuration */}
       <OrbitControls
         enablePan={true}
         enableZoom={true}
@@ -293,10 +355,11 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         mouseButtons={{
-          LEFT: THREE.MOUSE.PAN,
+          LEFT: THREE.MOUSE.ROTATE,  // Changed from PAN to ROTATE
           MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.ROTATE
+          RIGHT: THREE.MOUSE.PAN     // Changed from ROTATE to PAN
         }}
+        makeDefault={false}
       />
     </Canvas>
   );
