@@ -13,15 +13,14 @@ import {
 } from "react-router";
 import { type SVGProps } from "react";
 import type { CreateGameResponse } from "workers/shared-types";
-import { useGame } from "@/hooks/use-game";
 import { PlayersLobby } from "./players-lobby";
 import { AnimatePresence, motion } from "motion/react";
+import { useGlobalStore } from "@/store/global";
 
 export const UI = () => {
   const { id, isLoading } = useParams();
 
-  const navigate = useNavigate();
-  const { playerId, state } = useGame(id);
+  const { playerId, gameState } = useGlobalStore();
 
   const isGameRoute = useMatch("/games/:id");
 
@@ -37,7 +36,10 @@ export const UI = () => {
   if (debug) return null;
 
   const isLobby =
-    isGameRoute && id && state?.status === "lobby" && playerId !== undefined;
+    isGameRoute &&
+    id &&
+    gameState?.status === "lobby" &&
+    playerId !== undefined;
 
   return (
     <AnimatePresence mode="wait">
@@ -91,7 +93,7 @@ export const UI = () => {
               </div>
               <div className="w-full md:w-[450px]">
                 <AnimatePresence mode="wait"></AnimatePresence>
-                {isLobby ? (
+                {isLobby && playerId ? (
                   <motion.div
                     key="players-lobby"
                     className="size-full"
