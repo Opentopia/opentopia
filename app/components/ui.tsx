@@ -43,9 +43,11 @@ export const UI = () => {
     gameState?.status === "lobby" &&
     playerId !== undefined;
 
+  const shouldWaitGameData = isGameRoute && isLoading;
+
   return (
     <AnimatePresence mode="wait">
-      {!isLoading && !hasGameStarted && (
+      {!shouldWaitGameData && !hasGameStarted && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
