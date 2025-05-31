@@ -40,18 +40,6 @@ export default function GamePage() {
         )}
         <div className="flex gap-2">
           <button
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
-            onClick={() =>
-              mutate({
-                type: "move",
-                unitId: "dude",
-                to: "1,1",
-              })
-            }
-          >
-            Test move
-          </button>
-          <button
             className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm"
             onClick={handleBackToHome}
           >
@@ -59,7 +47,7 @@ export default function GamePage() {
           </button>
           {state.turn?.playerId === playerId ? (
             <button
-              className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+              className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
               onClick={() => mutate({ type: "end-turn" })}
             >
               End turn
@@ -72,6 +60,12 @@ export default function GamePage() {
               Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
             </span>
           )}
+          <button
+            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+            onClick={() => mutate({ type: "resign" })}
+          >
+            Resign
+          </button>
         </div>
       </div>
     </div>
