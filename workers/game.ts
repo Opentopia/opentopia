@@ -20,6 +20,16 @@ export class Game extends DurableObject {
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
     this.state = this.createGameState();
+
+    this.ctx.blockConcurrencyWhile(async () => {
+      const existing = await this.ctx.storage.get("game-state");
+      if (existing) {
+        this.state = JSON.parse(existing as string) as State;
+      } else {
+        const newGameState = this.createGameState();
+        await this.setState(newGameState);
+      }
+    });
   }
 
   private createGameState(): State {
@@ -164,10 +174,15 @@ export class Game extends DurableObject {
       mutation: { type: "join-game", player },
     };
     const { nextState } = mutate(opts);
-    this.state = nextState;
+    await this.setState(nextState);
     this.broadcast({ type: "mutation", data: opts });
 
     return { player, session };
+  }
+
+  private async setState(state: State) {
+    this.state = state;
+    await this.ctx.storage.put("game-state", JSON.stringify(state));
   }
 
   private async authenticate(
@@ -215,7 +230,7 @@ export class Game extends DurableObject {
             await this.ctx.storage.setAlarm(nextState.turn.until);
           }
         }
-        this.state = nextState;
+        await this.setState(nextState);
         this.broadcast({ type: "mutation", data: opts }, ws);
         break;
       }
@@ -251,7 +266,7 @@ export class Game extends DurableObject {
         mutation: { type: "end-turn" } as const,
       };
       const { nextState } = mutate(opts);
-      this.state = nextState;
+      await this.setState(nextState);
       if (nextState.turn?.until) {
         await this.ctx.storage.setAlarm(nextState.turn.until);
       }

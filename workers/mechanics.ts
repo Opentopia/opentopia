@@ -404,8 +404,9 @@ function validateMove({
   if (destTile.kind === "rock")
     return { success: false, reason: "Cannot move onto rock tile" };
   const occupied = state.units.some(u => u.tileKey === mutation.to);
-  if (occupied)
+  if (occupied) {
     return { success: false, reason: "Destination tile is occupied" };
+  }
   return { success: true };
 }
 

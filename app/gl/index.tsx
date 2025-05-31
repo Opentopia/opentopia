@@ -190,7 +190,7 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
         const unit = gameState.units.find(u => u.id === selectedUnit);
         if (unit && unit.tileKey !== key) {
           const unitInTarget = gameState.units.find(
-            u => u.tileKey === key && u.ownedBy === playerId,
+            u => u.tileKey === key && u.ownedBy !== playerId,
           );
           if (unitInTarget) {
             onMutate({
