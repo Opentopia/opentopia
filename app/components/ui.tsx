@@ -15,12 +15,13 @@ import { type SVGProps } from "react";
 import type { CreateGameResponse } from "workers/shared-types";
 import { useGame } from "@/hooks/use-game";
 import { PlayersLobby } from "./players-lobby";
+import { AnimatePresence, motion } from "motion/react";
 
 export const UI = () => {
-  const { id } = useParams();
+  const { id, isLoading } = useParams();
 
   const navigate = useNavigate();
-  const { playerId, state, mutate } = useGame(id);
+  const { playerId, state } = useGame(id);
 
   const isGameRoute = useMatch("/games/:id");
 
@@ -39,36 +40,87 @@ export const UI = () => {
     isGameRoute && id && state?.status === "lobby" && playerId !== undefined;
 
   return (
-    <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
-      <Card className="p-2 flex flex-row pointer-events-auto gap-0">
-        <div
-          id="content"
-          className="flex flex-col gap-12 items-center bg-background shadow-card-inset p-10 pb-6 max-w-[500px] md:min-w-[400px]"
+    <AnimatePresence mode="wait">
+      {!isLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
-            <Logo className="w-full" />
-            <p className="italic font-mono font-medium text-xs text-foreground/50">
-              A turn based odyssey in the browser
-            </p>
+          <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
+            <Card className="p-2 flex flex-row pointer-events-auto gap-0">
+              <div
+                id="content"
+                className="flex flex-col gap-12 items-center bg-background shadow-card-inset p-10 pb-6 max-w-[500px] md:min-w-[400px]"
+              >
+                <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
+                  <Logo className="w-full" />
+                  <p className="italic font-mono font-medium text-xs text-foreground/50">
+                    A turn based odyssey in the browser
+                  </p>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {isLobby ? (
+                    <motion.div
+                      key="game-actions"
+                      className="w-full h-[250px]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <GameActions id={id} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="home-actions"
+                      className="w-full h-[250px]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <HomeActions />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <span className="mt-auto text-xs text-foreground/50">
+                  JOYCO x BaseHub 2025©
+                </span>
+              </div>
+              <div className="w-full md:w-[450px]">
+                <AnimatePresence mode="wait"></AnimatePresence>
+                {isLobby ? (
+                  <motion.div
+                    key="players-lobby"
+                    className="w-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <PlayersLobby playerId={playerId} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="active-games-list"
+                    className="w-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <ActiveGamesList
+                      className="w-full"
+                      onJoinGame={handleJoinGame}
+                    />
+                  </motion.div>
+                )}
+              </div>
+            </Card>
           </div>
-
-          {isLobby ? <GameActions id={id} /> : <HomeActions />}
-
-          <span className="mt-auto text-xs text-foreground/50">
-            JOYCO x BaseHub 2025©
-          </span>
-        </div>
-        <div className="w-full md:w-[450px]">
-          {isLobby ? (
-            <>
-              <PlayersLobby playerId={playerId} />
-            </>
-          ) : (
-            <ActiveGamesList className="w-full" onJoinGame={handleJoinGame} />
-          )}
-        </div>
-      </Card>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
