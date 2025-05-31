@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useGlobalStore } from "@/store/global";
 import type { Route } from "./+types/home";
 import { useParams, useNavigate } from "react-router";
 import useWebSocket from "react-use-websocket";
@@ -57,7 +58,7 @@ export default function GamePage() {
   // Game has started - show debug interface for now
   return (
     <div className="fixed w-screen h-screen">
-      <GL state={state} />
+      <GL />
       <div className="absolute top-4 left-4 bg-black/80 text-white p-4 rounded-md max-w-md">
         {isMyTurn && (
           <div className="text-green-400 font-bold mb-2">YOUR TURN</div>
@@ -188,6 +189,10 @@ const useGame = (id: string | undefined) => {
         break;
     }
   }, [lastMessage, lastMessageProcessed, onMutate]);
+
+  useEffect(() => {
+    useGlobalStore.setState({ gameState: state });
+  }, [state]);
 
   return {
     playerId,

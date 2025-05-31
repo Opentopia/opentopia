@@ -129,7 +129,7 @@ const Block: React.FC<BlockProps> = ({
 interface GridProps {
   gridSize: number;
   spacing: number;
-  map: Record<string, Tile>;
+  map: State["map"];
 }
 
 const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
@@ -361,10 +361,12 @@ const Buildings = () => {
 
 interface MapProps {
   spacing?: number;
-  state: State;
 }
 
-export const Game = ({ spacing = SPACING, state }: MapProps) => {
+export const Game = ({ spacing = SPACING }: MapProps) => {
+  const gameState = useGlobalStore(s => s.gameState);
+
+  if (!gameState) return null;
   return (
     <Canvas style={{ width: "100%", height: "100vh" }} gl={{ antialias: true }}>
       <color attach="background" args={["#000000"]} />
@@ -396,7 +398,7 @@ export const Game = ({ spacing = SPACING, state }: MapProps) => {
       />
 
       {/* Grid of Blocks */}
-      <Grid gridSize={32} spacing={spacing} map={state.map} />
+      <Grid gridSize={32} spacing={spacing} map={gameState.map} />
 
       <Buildings />
 
@@ -430,9 +432,8 @@ export const Game = ({ spacing = SPACING, state }: MapProps) => {
 
 interface GLProps {
   spacing?: number;
-  state: State;
 }
 
-export const GL = ({ spacing = SPACING, state }: GLProps) => {
-  return <Game spacing={spacing} state={state} />;
+export const GL = ({ spacing = SPACING }: GLProps) => {
+  return <Game spacing={spacing} />;
 };
