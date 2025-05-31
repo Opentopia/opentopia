@@ -28,6 +28,8 @@ export const UI = () => {
 
   const debug = searchParams.get("debug");
 
+  const hasGameStarted = gameState?.status === "started";
+
   const handleJoinGame = (gameId: string) => {
     // Navigate to game route
     window.location.href = `/games/${gameId}`;
@@ -43,7 +45,7 @@ export const UI = () => {
 
   return (
     <AnimatePresence mode="wait">
-      {!isLoading && (
+      {!isLoading && !hasGameStarted && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
