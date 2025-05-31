@@ -48,12 +48,14 @@ export const PlayersLobby = ({ playerId }: { playerId: string }) => {
       <div className="h-12 mt-auto flex items-center justify-center">
         {isHost ? (
           <Button
-            onClick={() =>
+            onClick={() => {
+              const { map, units } = generateMap(players);
               onMutate({
                 type: "start-game",
-                map: generateMap(players.length),
-              })
-            }
+                map,
+                units,
+              });
+            }}
             disabled={players.length < 2}
             className="size-full"
           >

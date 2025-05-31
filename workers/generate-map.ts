@@ -1,13 +1,16 @@
-import type { Tile, TileKey } from "./mechanics";
+import type { Player, Tile, TileKey, Unit } from "./mechanics";
 
-export function generateMap(numberOfPlayers: number): Record<string, Tile> {
+export function generateMap(players: Player[]): {
+  map: Record<string, Tile>;
+  units: Unit[];
+} {
   // Calculate map size based on number of players
   // 2 players: 12x12, 3 players: 14x14, 4 players: 16x16
-  const mapSize = Math.max(12, Math.min(16, 10 + numberOfPlayers * 2));
+  const mapSize = Math.max(12, Math.min(16, 10 + players.length * 2));
 
   // Calculate number of neutral villages (in addition to starting villages)
   const neutralVillages = Math.max(
-    numberOfPlayers * 2,
+    players.length * 2,
     Math.floor(mapSize * mapSize * 0.06),
   );
 
@@ -33,7 +36,7 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
   }
 
   // Second pass: Place starting villages for each player (well separated)
-  const startingVillages = placeStartingVillages(map, mapSize, numberOfPlayers);
+  const startingVillages = placeStartingVillages(map, mapSize, players);
 
   // Add starting villages to the map
   startingVillages.forEach(({ x, y, playerId }) => {
@@ -64,7 +67,23 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
     }
   });
 
-  return map;
+  // Fourth pass: Create starting warrior units for each player
+  const units: Unit[] = [];
+  startingVillages.forEach(({ x, y, playerId }) => {
+    units.push({
+      id: crypto.randomUUID(),
+      tileKey: `${x},${y}` as TileKey,
+      type: "warrior",
+      attack: 2,
+      defense: 2,
+      range: 1,
+      movement: 1,
+      health: 10,
+      ownedBy: playerId,
+    });
+  });
+
+  return { map, units };
 }
 
 function calculateRockProbability(
@@ -99,7 +118,7 @@ function calculateRockProbability(
 function placeStartingVillages(
   map: Record<string, Tile>,
   mapSize: number,
-  numberOfPlayers: number,
+  players: Player[],
 ): Array<{ x: number; y: number; playerId: string }> {
   const startingVillages: Array<{ x: number; y: number; playerId: string }> =
     [];
@@ -108,12 +127,12 @@ function placeStartingVillages(
   // Define starting positions based on number of players
   const startingPositions = getStartingPositions(
     mapSize,
-    numberOfPlayers,
+    players.length,
     margin,
   );
 
-  for (let i = 0; i < numberOfPlayers; i++) {
-    const playerId = `player${i + 1}`;
+  for (let i = 0; i < players.length; i++) {
+    const playerId = players[i].id;
     const targetPosition = startingPositions[i];
 
     // Find the nearest grass tile to the target position
