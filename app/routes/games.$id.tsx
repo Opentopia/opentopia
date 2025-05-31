@@ -52,17 +52,26 @@ export default function GamePage() {
             Test move
           </button>
           <button
-            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
-            onClick={() => mutate({ type: "end-turn" })}
-          >
-            End turn
-          </button>
-          <button
             className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm"
             onClick={handleBackToHome}
           >
             Back to home
           </button>
+          {state.turn?.playerId === playerId ? (
+            <button
+              className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+              onClick={() => mutate({ type: "end-turn" })}
+            >
+              End turn
+            </button>
+          ) : (
+            <span
+              className="bg-gray-600  px-3 py-1 rounded text-sm"
+              onClick={() => mutate({ type: "end-turn" })}
+            >
+              Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
+            </span>
+          )}
         </div>
       </div>
     </div>

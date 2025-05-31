@@ -136,11 +136,21 @@ interface GridProps {
 
 const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
   const gridSize = Math.sqrt(Object.keys(map).length);
-  const { hoveredBlock, hoverBlock, gameState, selectUnit } = useGlobalStore();
+  const {
+    hoveredBlock,
+    hoverBlock,
+    gameState,
+    selectUnit,
+    onMutate,
+    playerId,
+  } = useGlobalStore();
   const blockSize = 1 - spacing;
+  const selectedUnit = useGlobalStore(s => s.selectedUnit);
+  const isPlayersTurn = gameState?.turn?.playerId === playerId;
 
   const handleHover = useCallback(
     (x: number, y: number) => {
+      if (!isPlayersTurn) return;
       hoverBlock(`${x},${y}`);
     },
     [hoverBlock],
@@ -151,21 +161,41 @@ const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
   }, [hoverBlock]);
 
   const handleClick = useCallback(
-    (key: string) => {
+    (key: `${number},${number}`) => {
       console.log("clicked block", key);
       console.log({ gameState });
-      if (key && gameState) {
-        const unit = gameState.units.find(u => u.tileKey === key);
-        if (unit) {
-          selectUnit(unit.id);
-        } else {
+
+      if (!isPlayersTurn) return;
+
+      if (!gameState) {
+        selectUnit(null);
+        return;
+      }
+
+      // If a unit is already selected, try to move it
+      if (selectedUnit) {
+        const unit = gameState.units.find(u => u.id === selectedUnit);
+        if (unit && unit.tileKey !== key) {
+          // Send move mutation
+          onMutate({
+            type: "move",
+            to: key,
+            unitId: selectedUnit,
+          });
           selectUnit(null);
+          return;
         }
+      }
+
+      // Otherwise, select the unit on this tile (if any)
+      const unit = gameState.units.find(u => u.tileKey === key);
+      if (unit) {
+        selectUnit(unit.id);
       } else {
         selectUnit(null);
       }
     },
-    [gameState, selectUnit],
+    [gameState, selectUnit, selectedUnit, onMutate],
   );
 
   // Calculate map bounds and center offsets - shared logic
