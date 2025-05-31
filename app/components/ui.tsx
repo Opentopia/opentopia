@@ -4,9 +4,33 @@ import { Input } from "./ui/input";
 import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
 import { ActiveGamesList } from "./ui/active-games-list";
+import { useState } from "react";
+import { Link } from "react-router";
 import { type SVGProps } from "react";
+import type { CreateGameResponse } from "workers/shared-types";
 
 export const UI = () => {
+  const [isCreatingGame, setIsCreatingGame] = useState(false);
+
+  const handleCreateGame = async () => {
+    try {
+      setIsCreatingGame(true);
+      const response = await fetch("/api/games", {
+        method: "POST",
+      });
+      const result = (await response.json()) as CreateGameResponse;
+
+      if (result.id) {
+        // Navigate to the new game
+        window.location.href = `/games/${result.id}`;
+      }
+    } catch (error) {
+      console.error("Failed to create game:", error);
+    } finally {
+      setIsCreatingGame(false);
+    }
+  };
+
   const handleJoinGame = (gameId: string) => {
     // Navigate to game route
     window.location.href = `/games/${gameId}`;
@@ -36,7 +60,13 @@ export const UI = () => {
             </FormField>
 
             <FormField label="Or create yours" align="center">
-              <Button className="w-full">Create new game</Button>
+              <Button
+                className="w-full"
+                onClick={handleCreateGame}
+                disabled={isCreatingGame}
+              >
+                {isCreatingGame ? "Creating..." : "Create new game"}
+              </Button>
             </FormField>
           </div>
 

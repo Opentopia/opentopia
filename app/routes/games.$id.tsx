@@ -26,8 +26,8 @@ export default function GamePage() {
 
   const isMyTurn = state?.turn?.playerId === playerId;
 
-  // For now, mock the game code - in real implementation this would come from the game state
-  const gameCode = "ABC123";
+  // Generate game code from the actual game ID
+  const gameCode = id ? id.substring(0, 6).toUpperCase() : "------";
 
   const handleBackToHome = () => {
     navigate("/");
