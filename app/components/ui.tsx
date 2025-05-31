@@ -128,6 +128,63 @@ const GameActions = ({ id }: { id: string }) => {
               navigator.clipboard.writeText(id);
             }}
           >
+            <span className="size-6 mr-2">
+              <svg
+                className="size-full"
+                viewBox="0 0 25 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3.5 9H15.5V21H3.5V9Z"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M9.5 8V9"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M9.5 5V3H11.5"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M19.5 3H21.5V5"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M14.5 3H16.5"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M21.5 8V10"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M21.5 13V15H19.5"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+                <path
+                  d="M16.5 15H15.5"
+                  stroke="black"
+                  stroke-width="2"
+                  stroke-linecap="square"
+                />
+              </svg>
+            </span>
             {id}
           </Button>
           <Button
