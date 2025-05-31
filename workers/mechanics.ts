@@ -7,7 +7,7 @@ type TileKey = `${number}:${number}`;
 export type State = {
   status: "lobby" | "started" | "finished";
   map: Record<TileKey, Tile>;
-  turn: {
+  turn: null | {
     playerId: string;
     until: number;
   };

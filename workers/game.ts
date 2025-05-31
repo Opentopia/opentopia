@@ -1,21 +1,30 @@
 import { DurableObject } from "cloudflare:workers";
-import { mutate, type State } from "./mechanics";
+import { sealData, unsealData, type SessionOptions } from "iron-session";
+import { mutate, type Player, type State } from "./mechanics";
 import type { JoinResponse, WSMessage } from "./shared-types";
+
+const sessionOptions: { password: string; ttl?: number } = {
+  password:
+    "dudeaois oiajoidfjaoidjf oaisjd foadsjfo iasjdfo asjdoifjaosdifjaosijdofjoidjoaijfois",
+};
 
 export class Game extends DurableObject {
   private state: State;
+  private sessionPassword: string;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
     this.state = this.createGameState();
+    this.sessionPassword = crypto.randomUUID();
   }
 
   private createGameState(): State {
     return {
+      status: "lobby",
       map: {},
       players: [],
       units: [],
-      turn: { playerId: "", until: Date.now() + 30_000 },
+      turn: null,
     };
   }
 
@@ -44,41 +53,59 @@ export class Game extends DurableObject {
         });
       }
       case "/join": {
-        const existingPlayerId = url.searchParams.get("playerId");
-        if (existingPlayerId) {
-          const isInGame = this.state.players.some(
+        const auth = request.headers.get("authorization");
+        const existingSession = auth?.split(" ")[1];
+        const { playerId: existingPlayerId } =
+          await this.authenticate(existingSession);
+
+        // if an existing player is reconnecting
+        if (existingPlayerId && existingSession) {
+          const isInGame = this.state.players.find(
             (p) => p.id === existingPlayerId
           );
           if (isInGame) {
             return Response.json({
-              playerId: existingPlayerId,
+              success: true,
+              session: existingSession,
               state: this.state,
+              playerId: existingPlayerId,
             } satisfies JoinResponse);
           } else if (this.state.status === "lobby") {
-            this.state.players.push({
-              id: existingPlayerId,
-              view: [],
-              stars: 0,
-            });
+            const { session, player } = await this.createPlayer();
             return Response.json({
-              playerId: existingPlayerId,
+              success: true,
+              session,
               state: this.state,
+              playerId: player.id,
             } satisfies JoinResponse);
           } else {
-            // not found
-            return Response.json(
-              { error: "Player not found" },
-              { status: 404 }
-            );
+            return Response.json({
+              success: false,
+              error:
+                this.state.status === "finished"
+                  ? "game ended"
+                  : "game started",
+            } satisfies JoinResponse);
           }
         }
 
-        if (this.state.status === "lobby") {
+        // else it's a new player
+
+        if (this.state.status !== "lobby") {
+          return Response.json({
+            success: false,
+            error:
+              this.state.status === "finished" ? "game ended" : "game started",
+          } satisfies JoinResponse);
         }
 
+        const { session, player } = await this.createPlayer();
+
         return Response.json({
-          playerId: "1",
+          session,
+          success: true,
           state: this.state,
+          playerId: player.id,
         } satisfies JoinResponse);
       }
     }
@@ -86,13 +113,50 @@ export class Game extends DurableObject {
     return new Response("Hello, world!");
   }
 
+  private async createPlayer(): Promise<{ player: Player; session: string }> {
+    const player: Player = {
+      id: crypto.randomUUID(),
+      view: [],
+      stars: 0,
+    };
+    console.log("creating player", player);
+
+    this.state.players.push(player);
+
+    const session = await sealData({ playerId: player.id }, sessionOptions);
+
+    return { player, session };
+  }
+
+  private async authenticate(
+    session: string | undefined | null
+  ): Promise<{ playerId: string | null }> {
+    if (!session) return { playerId: null };
+    try {
+      const { playerId } = await unsealData<{ playerId: string }>(
+        session,
+        sessionOptions
+      );
+      return { playerId };
+    } catch (err) {
+      return { playerId: null };
+    }
+  }
+
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string) {
     const parsed = JSON.parse(message as string) as WSMessage;
+
+    const { playerId } = await this.authenticate(parsed.session);
+
+    if (!playerId) {
+      ws.close(1008, "Invalid session");
+      return;
+    }
 
     switch (parsed.type) {
       case "mutation": {
         const { nextState } = mutate({
-          playerId: parsed.playerId,
+          playerId,
           timestamp: Date.now(),
           currentState: this.state,
           mutation: parsed.mutation,
