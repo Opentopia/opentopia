@@ -385,10 +385,9 @@ export function mutate({
       break;
   }
 
-  // Update only the mutated player's view
-  const mutatedPlayer = nextState.players.find(p => p.id === playerId);
-  if (mutatedPlayer) {
-    mutatedPlayer.view = getView(playerId, nextState);
+  // Update all players' views
+  for (const player of nextState.players) {
+    player.view = getView(player.id, nextState);
   }
 
   return { nextState };
