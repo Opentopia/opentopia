@@ -29,16 +29,7 @@ export default function GamePage() {
 
   if (!state) return <div>Loading...</div>;
 
-  if (showLobby && id) {
-    return (
-      <div className="fixed w-screen h-screen">
-        {/* <GL /> */}
-        <button onClick={() => mutate({ type: "start-game" })}>
-          start game HOBO
-        </button>
-      </div>
-    );
-  }
+  if (showLobby) return null;
 
   return (
     <div className="fixed w-screen h-screen">
