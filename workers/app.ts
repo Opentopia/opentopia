@@ -1,5 +1,6 @@
 import { createRequestHandler } from "react-router";
 import { api } from "./api";
+export { DB } from "./db";
 export { Game } from "./game";
 
 declare module "react-router" {
@@ -18,16 +19,15 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request, env, ctx) {
-    console.log("fetch", request.url);
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api")) {
       return api.fetch(request, env, ctx);
     }
 
-    // if (url.pathname === "/.well-known/appspecific/com.chrome.devtools.json") {
-    //   return;
-    // }
+    if (url.pathname === "/.well-known/appspecific/com.chrome.devtools.json") {
+      return new Response(null, { status: 204 });
+    }
 
     return requestHandler(request, {
       cloudflare: { env, ctx },

@@ -56,6 +56,7 @@ export type Unit = {
 
 export type Player = {
   id: string;
+  name: string;
   view: TileKey[];
   stars: number;
 };
@@ -105,15 +106,14 @@ export function mutate({
   currentState,
   mutation,
 }: MutateProps): { nextState: State } {
-  console.log("mutate", mutation);
-  if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
-    throw new Error("Not your turn");
-  }
-
   const nextState = structuredClone(currentState);
 
   switch (mutation.type) {
     case "move": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+
       const result = validateMove({ playerId, mutation, state: nextState });
       if (!result.success) {
         throw new Error(result.reason);
@@ -132,6 +132,10 @@ export function mutate({
       break;
     }
     case "attack": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+
       const result = validateAttack({ playerId, mutation, state: nextState });
       if (!result.success) {
         throw new Error(result.reason);
@@ -167,6 +171,10 @@ export function mutate({
       break;
     }
     case "spawn": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+
       const result = validateSpawn({ playerId, mutation, state: nextState });
       if (!result.success) {
         throw new Error(result.reason);
@@ -188,6 +196,10 @@ export function mutate({
       break;
     }
     case "conquer": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+
       const result = validateConquer({ playerId, mutation, state: nextState });
       if (!result.success) {
         throw new Error(result.reason);
@@ -201,12 +213,46 @@ export function mutate({
       break;
     }
     case "end-turn": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+
       const currentPlayerIdx = nextState.players.findIndex(
         (p) => p.id === playerId
       );
       const nextPlayerIdx = (currentPlayerIdx + 1) % nextState.players.length;
       const nextPlayer = nextState.players[nextPlayerIdx];
-      console.log("nextPlayer", nextPlayer);
+
+      // 1. Add 2 stars per village owned by nextPlayer
+      let starsToAdd = 0;
+      for (const tile of Object.values(nextState.map)) {
+        if (
+          tile.building &&
+          tile.building.type === "village" &&
+          tile.building.ownedBy === nextPlayer.id
+        ) {
+          starsToAdd += 2;
+        }
+      }
+      nextPlayer.stars += starsToAdd;
+
+      // 2. Assign non-owned villages occupied by nextPlayer's units
+      for (const tile of Object.values(nextState.map)) {
+        if (
+          tile.building &&
+          tile.building.type === "village" &&
+          tile.building.ownedBy !== nextPlayer.id
+        ) {
+          const unitOnTile = nextState.units.find(
+            (u) =>
+              u.tileKey === `${tile.x},${tile.y}` && u.ownedBy === nextPlayer.id
+          );
+          if (unitOnTile) {
+            tile.building.ownedBy = nextPlayer.id;
+          }
+        }
+      }
+
       nextState.turn = {
         playerId: nextPlayer.id,
         until: Date.now() + 30_000,
@@ -214,16 +260,15 @@ export function mutate({
       break;
     }
     case "join-game": {
-      const currentPlayerIdx = nextState.players.findIndex(
-        (p) => p.id === playerId
-      );
-      const nextPlayerIdx = (currentPlayerIdx + 1) % nextState.players.length;
-      const nextPlayer = nextState.players[nextPlayerIdx];
-      console.log("nextPlayer", nextPlayer);
-      nextState.turn = {
-        playerId: nextPlayer.id,
-        until: Date.now() + 30_000,
-      };
+      nextState.players.push(mutation.player);
+      if (nextState.players.length === 1) {
+        // is first player. give it the first turn
+        nextState.turn = {
+          playerId: mutation.player.id,
+          until: Date.now() + 30_000,
+        };
+      }
+
       break;
     }
     default:

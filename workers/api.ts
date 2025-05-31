@@ -3,6 +3,18 @@ import { env } from "cloudflare:workers";
 
 export const api = new Hono();
 
+// get games
+api.get("/api/games", async () => {
+  const stub = env.DB.get(env.DB.idFromName("global"));
+  return await stub.getGames();
+});
+
+// create game
+api.post("/api/games", async () => {
+  const stub = env.DB.get(env.DB.idFromName("global"));
+  return await stub.createGame();
+});
+
 // join game
 api.get("/api/games/:id", async (c) => {
   const stub = env.GAME.get(env.GAME.idFromName(c.req.param("id")));

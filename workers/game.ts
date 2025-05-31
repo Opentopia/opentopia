@@ -59,7 +59,6 @@ export class Game extends DurableObject {
         const existingSession = auth?.split(" ")[1];
         const { playerId: existingPlayerId } =
           await this.authenticate(existingSession);
-        console.log({ existingPlayerId });
 
         // if an existing player is reconnecting
         if (existingPlayerId && existingSession) {
@@ -116,23 +115,29 @@ export class Game extends DurableObject {
     return new Response("Hello, world!");
   }
 
+  getState() {
+    return this.state;
+  }
+
   private async createPlayer(): Promise<{ player: Player; session: string }> {
     const player: Player = {
       id: crypto.randomUUID(),
+      name: "Player",
       view: [],
       stars: 0,
     };
 
-    this.state.players.push(player);
-    if (this.state.players.length === 1) {
-      // is first player. give it the first turn
-      this.state.turn = {
-        playerId: player.id,
-        until: Date.now() + 30_000,
-      };
-    }
-
     const session = await sealData({ playerId: player.id }, sessionOptions);
+
+    const opts: MutateProps = {
+      playerId: player.id,
+      timestamp: Date.now(),
+      currentState: this.state,
+      mutation: { type: "join-game", player },
+    };
+    const { nextState } = mutate(opts);
+    this.state = nextState;
+    this.broadcast({ type: "mutation", data: opts });
 
     return { player, session };
   }
