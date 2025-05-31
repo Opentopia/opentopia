@@ -102,7 +102,8 @@ export const useGame = (id: string | undefined) => {
   }, [lastMessage, lastMessageProcessed, onMutate]);
 
   useEffect(() => {
-    useGlobalStore.setState({ gameState: state });
+    // aca kahdri
+    useGlobalStore.setState({ gameState: state, mapView: {} });
   }, [state]);
 
   return {
