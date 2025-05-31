@@ -9,7 +9,7 @@ export type WSMessageSend = {
 export type WSMessageReceive =
   | {
       type: "mutation";
-      data: MutateProps;
+      data: Omit<MutateProps, "currentState">;
     }
   | {
       type: "join";
