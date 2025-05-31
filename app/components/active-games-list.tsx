@@ -36,33 +36,35 @@ export const ActiveGamesList = ({
         const gamesData = (await response.json()) as GamesListResponse;
 
         // Transform the API response to match our UI needs
-        const transformedGames: ActiveGame[] = gamesData.map(game => {
-          const playerCount = game.state.players.length;
-          const maxPlayers = 4; // Based on workspace rules
+        const transformedGames: ActiveGame[] = gamesData
+          .map(game => {
+            const playerCount = game.state.players.length;
+            const maxPlayers = 4; // Based on workspace rules
 
-          let status: ActiveGame["status"];
-          switch (game.state.status) {
-            case "lobby":
-              status = "waiting";
-              break;
-            case "started":
-              status = "in-progress";
-              break;
-            case "finished":
-              status = "finished";
-              break;
-            default:
-              status = "waiting";
-          }
+            let status: ActiveGame["status"];
+            switch (game.state.status) {
+              case "lobby":
+                status = "waiting";
+                break;
+              case "started":
+                status = "in-progress";
+                break;
+              case "finished":
+                status = "finished";
+                break;
+              default:
+                status = "waiting";
+            }
 
-          return {
-            id: game.id,
-            code: game.id.substring(0, 6).toUpperCase(), // Generate a display code from ID
-            playerCount,
-            maxPlayers,
-            status,
-          };
-        });
+            return {
+              id: game.id,
+              code: game.id.substring(0, 6).toUpperCase(), // Generate a display code from ID
+              playerCount,
+              maxPlayers,
+              status,
+            };
+          })
+          .filter(game => game.playerCount > 0);
 
         setGames(transformedGames);
       } catch (error) {
