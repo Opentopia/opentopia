@@ -1,4 +1,4 @@
-import type { Tile } from "./mechanics";
+import type { Tile, TileKey } from "./mechanics";
 
 export function generateMap(numberOfPlayers: number): Record<string, Tile> {
   // Calculate map size based on number of players
@@ -16,7 +16,7 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
   // First pass: Generate basic terrain (grass/rock)
   for (let x = 0; x < mapSize; x++) {
     for (let y = 0; y < mapSize; y++) {
-      const key = `${x}:${y}`;
+      const key = `${x},${y}` satisfies TileKey;
 
       // Create clusters of rocks for more interesting terrain
       const rockProbability = calculateRockProbability(x, y, mapSize);
@@ -31,7 +31,7 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
 
   // Add starting villages to the map
   startingVillages.forEach(({ x, y, playerId }) => {
-    const key = `${x}:${y}`;
+    const key = `${x},${y}` satisfies TileKey;
     if (map[key] && map[key].kind === "grass") {
       map[key].building = {
         type: "village",
@@ -52,7 +52,7 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
 
   // Add neutral villages to the map
   neutralVillagePositions.forEach(({ x, y }) => {
-    const key = `${x}:${y}`;
+    const key = `${x},${y}` satisfies TileKey;
     if (map[key] && map[key].kind === "grass") {
       map[key].building = { type: "village", ownedBy: null, raidedBy: null };
     }
@@ -219,7 +219,7 @@ function findNearestGrassTile(
           const y = targetY + dy;
 
           if (x >= 0 && x < mapSize && y >= 0 && y < mapSize) {
-            const key = `${x}:${y}`;
+            const key = `${x},${y}` satisfies TileKey;
             if (map[key] && map[key].kind === "grass") {
               return { x, y };
             }
@@ -251,7 +251,7 @@ function placeVillages(
     // Pick a random position
     const x = Math.floor(Math.random() * mapSize);
     const y = Math.floor(Math.random() * mapSize);
-    const key = `${x}:${y}`;
+    const key = `${x},${y}` satisfies TileKey;
 
     // Must be on grass
     if (!map[key] || map[key].kind !== "grass") {
@@ -283,7 +283,7 @@ function placeVillages(
 
       const x = Math.floor(Math.random() * mapSize);
       const y = Math.floor(Math.random() * mapSize);
-      const key = `${x}:${y}`;
+      const key = `${x},${y}` satisfies TileKey;
 
       if (!map[key] || map[key].kind !== "grass") {
         continue;
