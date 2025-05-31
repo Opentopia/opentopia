@@ -122,6 +122,7 @@ export class Game extends DurableObject {
   private async createPlayer(): Promise<{ player: Player; session: string }> {
     const player: Player = {
       id: crypto.randomUUID(),
+      name: "Player",
       view: [],
       stars: 0,
     };

@@ -56,6 +56,7 @@ export type Unit = {
 
 export type Player = {
   id: string;
+  name: string;
   view: TileKey[];
   stars: number;
 };
