@@ -207,6 +207,37 @@ export function mutate({
       const nextPlayerIdx = (currentPlayerIdx + 1) % nextState.players.length;
       const nextPlayer = nextState.players[nextPlayerIdx];
       console.log("nextPlayer", nextPlayer);
+
+      // 1. Add 2 stars per village owned by nextPlayer
+      let starsToAdd = 0;
+      for (const tile of Object.values(nextState.map)) {
+        if (
+          tile.building &&
+          tile.building.type === "village" &&
+          tile.building.ownedBy === nextPlayer.id
+        ) {
+          starsToAdd += 2;
+        }
+      }
+      nextPlayer.stars += starsToAdd;
+
+      // 2. Assign non-owned villages occupied by nextPlayer's units
+      for (const tile of Object.values(nextState.map)) {
+        if (
+          tile.building &&
+          tile.building.type === "village" &&
+          tile.building.ownedBy !== nextPlayer.id
+        ) {
+          const unitOnTile = nextState.units.find(
+            (u) =>
+              u.tileKey === `${tile.x},${tile.y}` && u.ownedBy === nextPlayer.id
+          );
+          if (unitOnTile) {
+            tile.building.ownedBy = nextPlayer.id;
+          }
+        }
+      }
+
       nextState.turn = {
         playerId: nextPlayer.id,
         until: Date.now() + 30_000,
