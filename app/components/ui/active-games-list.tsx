@@ -156,7 +156,7 @@ export const ActiveGamesList = ({
                     className="w-[100px]"
                     asChild
                   >
-                    <Link to={`/games/${game.id}`}>Spectate</Link>
+                    <Link to={`/games/${game.code}`}>Spectate</Link>
                   </Button>
                 )}
               </div>
