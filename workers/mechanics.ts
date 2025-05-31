@@ -1,12 +1,27 @@
+import { parseTileKey } from "./utils";
+
+type UnitType = "warrior" | "archer";
+
+const UNIT_COST: Record<UnitType, number> = {
+  warrior: 2,
+  archer: 3,
+};
+
+const UNIT_BASE_MOVEMENT: Record<UnitType, number> = {
+  warrior: 1,
+  archer: 1,
+};
+
 /* -------------------------------------------------------------------------------------------------
  * Entities
  * -----------------------------------------------------------------------------------------------*/
 
-type TileKey = `${number}:${number}`;
+export type TileKey = `${number},${number}`;
 
 export type State = {
+  status: "lobby" | "started" | "finished";
   map: Record<TileKey, Tile>;
-  turn: {
+  turn: null | {
     playerId: string;
     until: number;
   };
@@ -30,7 +45,7 @@ export type Building = {
 export type Unit = {
   id: string;
   tileKey: TileKey;
-  type: "warrior" | "archer";
+  type: UnitType;
   attack: number;
   defense: number;
   range: number;
@@ -52,13 +67,22 @@ export type Player = {
 export type Mutation =
   | {
       type: "move";
-      warriorId: string;
-      tp: [number, number];
+      unitId: string;
+      to: TileKey;
     }
   | {
       type: "attack";
-      warriorId: string;
-      targetWarriorId: string;
+      unitId: string;
+      targetUnitId: string;
+    }
+  | {
+      type: "spawn";
+      unitType: "warrior" | "archer";
+      tileKey: TileKey;
+    }
+  | {
+      type: "conquer";
+      tileKey: TileKey;
     };
 
 export function mutate({
@@ -79,115 +103,98 @@ export function mutate({
   const nextState = structuredClone(currentState);
 
   switch (mutation.type) {
-    case "move":
-      // Find the unit to move
-      const unit = nextState.units.find(
-        (u) => u.id === mutation.warriorId && u.ownedBy === playerId
-      );
-
-      if (!unit) {
-        throw new Error("Unit not found or not owned by player");
+    case "move": {
+      const result = validateMove({ playerId, mutation, state: nextState });
+      if (!result.success) {
+        throw new Error(result.reason);
       }
-
-      // Check if destination is valid
-      const [toX, toY] = mutation.tp;
-      const toTileKey: TileKey = `${toX}:${toY}`;
-      const toTile = nextState.map[toTileKey];
-
-      if (!toTile) {
-        throw new Error("Invalid destination");
+      const unit = nextState.units.find((u) => u.id === mutation.unitId)!;
+      const destTile = nextState.map[mutation.to];
+      if (
+        destTile.building &&
+        destTile.building.type === "village" &&
+        destTile.building.ownedBy !== playerId
+      ) {
+        destTile.building.raidedBy = playerId;
       }
-
-      if (toTile.kind === "rock") {
-        throw new Error("Cannot move to rock tile");
-      }
-
-      // Check if destination tile is occupied by another unit
-      const occupyingUnit = nextState.units.find(
-        (u) => u.tileKey === toTileKey
-      );
-      if (occupyingUnit) {
-        throw new Error("Destination tile occupied");
-      }
-
-      // Check movement range
-      const [fromX, fromY] = unit.tileKey.split(":").map(Number);
-      const distance = Math.abs(fromX - toX) + Math.abs(fromY - toY);
-      if (distance > unit.movement) {
-        throw new Error("Move distance exceeds unit movement range");
-      }
-
-      // Move the unit
-      unit.tileKey = toTileKey;
-
-      // Advance turn after successful move
-      advanceTurn(nextState);
+      unit.tileKey = mutation.to;
+      unit.movement = 0;
       break;
-
-    case "attack":
-      // Find the attacking unit
-      const attacker = nextState.units.find(
-        (u) => u.id === mutation.warriorId && u.ownedBy === playerId
+    }
+    case "attack": {
+      const result = validateAttack({ playerId, mutation, state: nextState });
+      if (!result.success) {
+        throw new Error(result.reason);
+      }
+      const attacker = nextState.units.find((u) => u.id === mutation.unitId)!;
+      const defender = nextState.units.find(
+        (u) => u.id === mutation.targetUnitId
+      )!;
+      const attackerMaxHp = 10;
+      const defenderMaxHp = 10;
+      const attackForce = attacker.attack * (attacker.health / attackerMaxHp);
+      const defenseForce = defender.defense * (defender.health / defenderMaxHp);
+      const totalDamage = attackForce + defenseForce;
+      const attackResult = Math.round(
+        (attackForce / totalDamage) * attacker.attack * 4.5
       );
-
-      if (!attacker) {
-        throw new Error("Attacking unit not found or not owned by player");
-      }
-
-      // Find the target unit
-      const target = nextState.units.find(
-        (u) => u.id === mutation.targetWarriorId
-      );
-
-      if (!target) {
-        throw new Error("Target unit not found");
-      }
-
-      // Check if target is in range
-      const [attackerX, attackerY] = attacker.tileKey.split(":").map(Number);
-      const [targetX, targetY] = target.tileKey.split(":").map(Number);
-      const attackDistance =
-        Math.abs(attackerX - targetX) + Math.abs(attackerY - targetY);
-
-      if (attackDistance > attacker.range) {
-        throw new Error("Target out of range");
-      }
-
-      // Calculate damage
-      const damage = Math.max(1, attacker.attack - target.defense);
-      target.health -= damage;
-
-      // Remove unit if health <= 0
-      if (target.health <= 0) {
-        const targetIndex = nextState.units.findIndex(
-          (u) => u.id === target.id
+      const damageToDefender = Math.max(1, attackResult);
+      defender.health -= damageToDefender;
+      if (defender.health > 0) {
+        const newDefenseForce =
+          defender.defense * (defender.health / defenderMaxHp);
+        const newTotalDamage = attackForce + newDefenseForce;
+        const defenseResult = Math.round(
+          (newDefenseForce / newTotalDamage) * defender.defense * 4.5
         );
-        if (targetIndex !== -1) {
-          nextState.units.splice(targetIndex, 1);
-        }
+        const damageToAttacker = Math.max(1, defenseResult);
+        attacker.health -= damageToAttacker;
       }
-
-      // Advance turn after successful attack
-      advanceTurn(nextState);
+      nextState.units = nextState.units.filter((u) => u.health > 0);
+      if (defender.health <= 0 && attacker.range === 1) {
+        attacker.tileKey = defender.tileKey;
+      }
       break;
-
+    }
+    case "spawn": {
+      const result = validateSpawn({ playerId, mutation, state: nextState });
+      if (!result.success) {
+        throw new Error(result.reason);
+      }
+      const player = nextState.players.find((p) => p.id === playerId)!;
+      const cost = UNIT_COST[mutation.unitType];
+      player.stars -= cost;
+      nextState.units.push({
+        id: crypto.randomUUID(),
+        tileKey: mutation.tileKey,
+        type: mutation.unitType,
+        attack: mutation.unitType === "warrior" ? 2 : 1,
+        defense: 2,
+        range: mutation.unitType === "warrior" ? 1 : 2,
+        movement: 1,
+        health: 10,
+        ownedBy: playerId,
+      });
+      break;
+    }
+    case "conquer": {
+      const result = validateConquer({ playerId, mutation, state: nextState });
+      if (!result.success) {
+        throw new Error(result.reason);
+      }
+      const unit = nextState.units.find(
+        (u) => u.tileKey === mutation.tileKey && u.ownedBy === playerId
+      )!;
+      const tile = nextState.map[mutation.tileKey];
+      tile.building!.ownedBy = playerId;
+      unit.movement = 0;
+      break;
+    }
     default:
       break;
   }
 
   return { nextState };
-}
-
-function advanceTurn(state: State) {
-  const currentPlayerIndex = state.players.findIndex(
-    (p) => p.id === state.turn.playerId
-  );
-  const nextPlayerIndex = (currentPlayerIndex + 1) % state.players.length;
-
-  if (nextPlayerIndex < state.players.length) {
-    state.turn.playerId = state.players[nextPlayerIndex].id;
-    state.turn.until = Date.now() + 30000; // 30 seconds per turn
-  }
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -203,5 +210,114 @@ export function isPlayerTurn({
   timestamp: number;
   state: State;
 }) {
-  return state.turn.playerId === playerId && state.turn.until >= timestamp;
+  return state.turn?.playerId === playerId && state.turn.until >= timestamp;
+}
+
+function validateMove({
+  playerId,
+  mutation,
+  state,
+}: {
+  playerId: string;
+  mutation: Extract<Mutation, { type: "move" }>;
+  state: State;
+}): { success: true } | { success: false; reason: string } {
+  const unit = state.units.find((u) => u.id === mutation.unitId);
+  if (!unit) return { success: false, reason: "Unit not found" };
+  if (unit.ownedBy !== playerId)
+    return { success: false, reason: "You do not own this unit" };
+  const [fromX, fromY] = parseTileKey(unit.tileKey);
+  const [toX, toY] = mutation.to.split(",").map(Number);
+  const dx = Math.abs(toX - fromX);
+  const dy = Math.abs(toY - fromY);
+  if (Math.max(dx, dy) > unit.movement)
+    return { success: false, reason: "Destination out of range" };
+  const destTile = state.map[mutation.to];
+  if (!destTile)
+    return { success: false, reason: "Destination tile does not exist" };
+  const occupied = state.units.some((u) => u.tileKey === mutation.to);
+  if (occupied)
+    return { success: false, reason: "Destination tile is occupied" };
+  return { success: true };
+}
+
+function validateAttack({
+  playerId,
+  mutation,
+  state,
+}: {
+  playerId: string;
+  mutation: Extract<Mutation, { type: "attack" }>;
+  state: State;
+}): { success: true } | { success: false; reason: string } {
+  const attacker = state.units.find((u) => u.id === mutation.unitId);
+  const defender = state.units.find((u) => u.id === mutation.targetUnitId);
+  if (!attacker) return { success: false, reason: "Attacker unit not found" };
+  if (!defender) return { success: false, reason: "Defender unit not found" };
+  if (attacker.ownedBy !== playerId)
+    return { success: false, reason: "You do not own the attacking unit" };
+  if (defender.ownedBy === playerId)
+    return { success: false, reason: "Cannot attack your own unit" };
+  const [ax, ay] = parseTileKey(attacker.tileKey);
+  const [dx, dy] = parseTileKey(defender.tileKey);
+  const chebyshev = Math.max(Math.abs(ax - dx), Math.abs(ay - dy));
+  if (chebyshev > attacker.range || chebyshev === 0)
+    return { success: false, reason: "Target out of range" };
+  return { success: true };
+}
+
+function validateSpawn({
+  playerId,
+  mutation,
+  state,
+}: {
+  playerId: string;
+  mutation: Extract<Mutation, { type: "spawn" }>;
+  state: State;
+}): { success: true } | { success: false; reason: string } {
+  const tile = state.map[mutation.tileKey];
+  if (!tile) return { success: false, reason: "Tile does not exist" };
+  if (
+    !tile.building ||
+    tile.building.type !== "village" ||
+    tile.building.ownedBy !== playerId
+  )
+    return { success: false, reason: "Can only spawn in your own village" };
+  const occupied = state.units.some((u) => u.tileKey === mutation.tileKey);
+  if (occupied) return { success: false, reason: "Tile is occupied" };
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player) return { success: false, reason: "Player not found" };
+  const cost = UNIT_COST[mutation.unitType];
+  if (player.stars < cost)
+    return { success: false, reason: "Not enough stars" };
+  return { success: true };
+}
+
+function validateConquer({
+  playerId,
+  mutation,
+  state,
+}: {
+  playerId: string;
+  mutation: Extract<Mutation, { type: "conquer" }>;
+  state: State;
+}): { success: true } | { success: false; reason: string } {
+  const tile = state.map[mutation.tileKey];
+  if (!tile || !tile.building || tile.building.type !== "village") {
+    return { success: false, reason: "No village on this tile" };
+  }
+  if (tile.building.ownedBy === playerId) {
+    return { success: false, reason: "Village already owned by you" };
+  }
+  const unit = state.units.find(
+    (u) =>
+      u.tileKey === mutation.tileKey && u.ownedBy === playerId && u.movement > 0
+  );
+  if (!unit) {
+    return {
+      success: false,
+      reason: "No friendly unit with movement on this tile",
+    };
+  }
+  return { success: true };
 }

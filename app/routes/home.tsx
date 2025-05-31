@@ -1,5 +1,4 @@
 import type { Route } from "./+types/home";
-import { useState } from "react";
 
 import { UI } from "~/components/ui";
 import { GL } from "~/gl";

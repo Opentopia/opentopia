@@ -1,4 +1,5 @@
 import { createRequestHandler } from "react-router";
+import { api } from "./api";
 export { Game } from "./game";
 
 declare module "react-router" {
@@ -17,6 +18,12 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/api")) {
+      return api.fetch(request, env, ctx);
+    }
+
     return requestHandler(request, {
       cloudflare: { env, ctx },
     });
