@@ -30,7 +30,7 @@ function GameCodeInput({
     <Input
       type="text"
       className={cn(
-        "h-12 px-4 py-3 text-lg text-center font-display font-bold",
+        "h-[80px] w-full px-4 py-3 text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis",
         className
       )}
       onChange={handleChange}

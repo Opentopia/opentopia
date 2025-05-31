@@ -2,31 +2,32 @@ import { Card } from "@/components/ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { GameCodeInput } from "./ui/game-code-input";
+import { FormField } from "./ui/form-field";
 import { type SVGProps } from "react";
+
 export const UI = () => {
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
       <Card className="p-2 flex flex-row pointer-events-auto">
-        <div className="flex flex-col just gap-12 items-center bg-background shadow-card-inset p-10 pb-6">
+        <div className="flex flex-col just gap-12 items-center bg-background shadow-card-inset p-10 pb-6 max-w-[500px] md:min-w-[400px]">
           <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
             <Logo className="w-full" />
             <p className="italic font-mono font-medium text-xs text-foreground/50">
               A turn based odyssey in the browser
             </p>
           </div>
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2 items-center">
-              <label className="font-medium" htmlFor="game-code">
-                Join a game with code
-              </label>
+          <div className="flex flex-col gap-5 w-full">
+            <FormField
+              label="Join a game with code"
+              htmlFor="game-code"
+              align="center"
+            >
               <GameCodeInput type="text" id="game-code" />
-            </div>
-            <div className="flex flex-col gap-2 items-center">
-              <label className="font-medium" htmlFor="game-code">
-                Or create yours
-              </label>
+            </FormField>
+
+            <FormField label="Or create yours" align="center">
               <Button className="w-full">Create new game</Button>
-            </div>
+            </FormField>
           </div>
 
           <span className="mt-auto text-xs text-foreground/50">
