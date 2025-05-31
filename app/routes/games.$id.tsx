@@ -40,7 +40,6 @@ export default function GamePage() {
     );
   }
 
-  // Game has started - show debug interface for now
   return (
     <div className="fixed w-screen h-screen">
       <GL />
@@ -48,9 +47,6 @@ export default function GamePage() {
         {isMyTurn && (
           <div className="text-green-400 font-bold mb-2">YOUR TURN</div>
         )}
-        <pre className="text-xs mb-4">
-          {JSON.stringify({ playerId, state }, null, 2)}
-        </pre>
         <div className="flex gap-2">
           <button
             className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"

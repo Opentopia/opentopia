@@ -122,9 +122,10 @@ export const useGame = (id: string | undefined) => {
             return [key, { ...tile, kind: "fog", building: null }];
           }),
         ),
+        isLoading,
       };
     });
-  }, [state, playerId, onMutate]);
+  }, [state, playerId, onMutate, isLoading]);
 
   return {
     playerId,

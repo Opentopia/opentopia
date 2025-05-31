@@ -10,13 +10,15 @@ export const useGlobalStore = create<{
   playerId: string | null;
   selectedUnit: string | null;
   selectUnit: (unitId: string | null) => void;
+  isLoading: boolean;
 }>(set => ({
   hoveredBlock: null,
   hoverBlock: (block: TileKey | null) => set({ hoveredBlock: block }),
   gameState: null,
   mapView: null,
-  onMutate: () => {},
+  onMutate: () => { },
   playerId: null,
   selectedUnit: null,
   selectUnit: (unitId: string | null) => set({ selectedUnit: unitId }),
+  isLoading: true,
 }));
