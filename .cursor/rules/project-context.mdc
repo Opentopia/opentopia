@@ -1,0 +1,134 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Project: Minimalist Polytopia‐Style 4X Web Game
+
+         We are building a lightweight, turn‐based strategy game inspired by “The Battle of Polytopia.”
+         Core characteristics:
+           • Gameplay Mechanics:
+             – 16×16 procedurally generated map with three tile types: mountain/rock, village, grass
+             – Up to 4 players join a lobby (no login), share a room link, and start the game together
+             – Single‐currency economy (“stars”). Each owned village produces a constant 2 stars per turn.
+             – Two unit types only: Warrior (melee) and Archer (ranged). Each has fixed stats (attack, defense, range, hp, movement).
+             – Villages do not upgrade; capturing a village simply assigns ownership. No tech tree.
+             – Turn structure: each player gets a fixed time to move/attack, spawn units, and end turn.
+             – Fog of war: players only see tiles in their “view” (starting tile + neighbors), and units reveal adjacent tiles when they move.
+
+1. **State Schema** (mirror in both server and client, for reference)  
+   ```ts
+   // Global Game State (per room)
+   interface State {
+     map: Record<string, Tile>;        // Key = “x,y” string (e.g., “3,12”)
+     players: Player[];                // Up to 4 players
+     turn: {
+       playerId: string;               // ID of current player’s turn
+       until: number;                  // Unix timestamp when this turn ends
+     };
+   }
+
+   interface Player {
+     id: string;                       // e.g. socket ID or Bolt client ID
+     view: string[];                   // Array of “x,y” keys that this player has seen (fog of war)
+     stars: number;                    // Currency balance for playing units or capturing villages
+   }
+
+   interface Tile {
+     x: number;                        // 0..15
+     y: number;                        // 0..15
+     type: “mountain” | “grass” | “village”;
+     building?: Building;              // If there is a city/village
+     unit?: Unit;                      // If there is a unit on this tile
+   }
+
+   interface Building {
+     type: “village”;                  // Only villages exist
+     ownedBy?: string;                 // Player ID who owns it (or undefined if neutral)
+     raidedBy?: string;                // Player ID that raided it this turn (for turn resolution)
+   }
+
+   interface Unit {
+     type: “warrior” | “archer”;
+     attack: number;                   // e.g., warrior=2, archer=1
+     defense: number;                  // e.g., warrior=2, archer=2
+     range: number;                    // warrior=1 (adjacent), archer=2 (two‐tile)
+     movement: number;                 // 1 tile per action
+     hp: number;                       // Start at 10 HP (both unit types)
+     maxHp: number;                    // Always 10 HP, to calculate damage and defense
+     ownedBy: string;                  // Player ID
+   }
+   ```
+2. **Fog of War**
+   * Each player’s `view: string[]` starts only containing their starting tile (and its 8 neighbors).
+   * When a player moves a unit or spends stars to explore (no special “scout” unit; seeing happens automatically when a unit moves adjacent), add any newly revealed `"x,y"` keys to their `view` array.
+   * On the client, only render tiles whose key is in that player’s `view`. The rest get the default clouded tile.
+3. **Turn Structure & Timing**
+   * Only the active player can issue “Move Unit,” “Attack,” or “Spend Stars / Capture Village” events. Other players see a “Waiting for Player X…” overlay.
+   * If timer expires, automatically end the turn and pass to the next player in `state.players` order (wrap around).
+4. **Movement & Combat (Client + Server Validation)**
+   * When it’s your turn, you can select one of your units and click on a target tile within movement range = `unit.movement` (always 1). The client sends a `MOVE_UNIT` event:
+
+     ```jsonc
+     {
+       "type": "MOVE_UNIT",
+       "payload": {
+         "unitOwner": "<player-id>",
+         "from": [x1, y1],
+         "to": [x2, y2]
+       }
+     }
+     ```
+   * Server checks:
+
+     * It’s this player’s turn.
+     * There is a unit at `map["x1,y1"]` owned by that player.
+     * Tile `"x2,y2"` is adjacent (Manhattan distance = 1).
+     * If destination has an enemy unit: resolve combat (see Combat Rules). Otherwise, move unit into empty tile.
+   * **Combat Rules**:
+Using this formulas:
+```ts
+attackForce = attacker.attack * (attacker.health / attacker.maxHealth) 
+defenseForce = defender.defense * (defender.health / defender.maxHealth)
+totalDamage = attackForce + defenseForce 
+attackResult = round((attackForce / totalDamage) * attacker.attack * 4.5) 
+defenseResult = round((defenseForce / totalDamage) * defender.defense * 4.5)
+```
+     1. If attacker is a warrior (range=1), it must be adjacent. If an archer (range=2), can target an enemy unit exactly 2 tiles away (diagonal too).
+     2. Damage = `attackResult`. Minimum damage = 1. Subtract from defender’s `hp`. If defender’s `hp <= 0`, remove defender, and attacker moves into the defender’s tile ( unless attacker is an archer—archer stays in place).
+     3. If defender survives, subtract `defenseResult` from attacker’s `hp` (simultaneous counterattack). Minimum damage = 1. If attacker dies, remove unit from `from` tile.
+     
+5. **Capturing Villages & Currency**
+
+   * Any unit that starts its turn on a neutral or enemy village triggers a `CAPTURE_VILLAGE` event.
+   * Capture mechanics:
+
+     1. If village is neutral (`building.ownedBy` undefined), the unit’s owner sets `building.ownedBy = <player‐id>`. If village is enemy‐owned, override ownership.
+     2. Village always stays type = `"village"` and never upgrades.
+     3. At the **start** of each player’s turn, for each tile in `state.map` where `building.type === "village" && building.ownedBy === <this player> && raidedBy is undefined` , add **2 stars** to that player’s `stars` balance.
+     4. Reveal that tile to `player.view` if not already visible.
+   * Clients should display each owned village with the player color on the tile.
+6. **Spending Stars**
+
+   * During your turn, you can spend stars on:
+
+     * **Spawning a unit on a city tile you own**:
+       * Spawned unit appears on that tile with full HP.
+       * Deduct cost immediately.
+     * **Moving units does not cost stars**.
+   * The client UI should show current `stars` balance and a sidebar with “Spawn Warrior” / “Spawn Archer” buttons (enabled only if the active player has ≥ cost and has at least one owned village to place).
+
+7.  **Turn Flow (Client Logic)**
+    * On “Start Game”:
+
+      1. Only host (first player) can press “Start Game.”
+      2. Server initializes map, randomly places starting villages (each as owned building for each player, and sets each player’s `view` to that tile and its neighbors).
+      3. Sets `turn.playerId =` first player’s ID, `turn.until = Date.now() + TURN_DURATION_MS`.
+      4. Broadcast updated state to all clients. Clients hide lobby UI and render the map and units.
+    * During your turn:
+      * Client polls `state.turn.until` and shows countdown.
+      * Only if `state.turn.playerId === this player’s ID` do “move,” “attack,” “spawn,” and “end turn” UI elements become active. Otherwise, show “Waiting for <player name>…”
+      * When active player clicks a tile/unit, highlight possible moves/attacks (adjacent moves or range=2 for archer).
+      * Clicking on a valid target sends a `MOVE_OR_ATTACK` event; server validates and returns updated state.
+      * Clicking “Spawn Warrior/Archer” sends `SPAWN_UNIT` event with chosen village tile; server validates cost and placement, then updates state.
+      * Clicking “End Turn” or timer expiring sends `END_TURN` event; server calculates star income for next player, increments `turn.playerId` & `turn.until`, then broadcasts.
