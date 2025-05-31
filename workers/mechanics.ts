@@ -100,6 +100,7 @@ export type Mutation =
     }
   | {
       type: "start-game";
+      map: Record<TileKey, Tile>;
     }
   | {
       type: "end-turn";
@@ -340,7 +341,7 @@ export function mutate({
         throw new Error("You are not the host");
       }
       nextState.status = "started";
-      nextState.map = generateMap(nextState.players.length);
+      nextState.map = mutation.map;
 
       // Create starting warrior units for each player's starting village
       nextState.units = [];
