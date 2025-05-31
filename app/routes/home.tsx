@@ -5,8 +5,12 @@ import { GL } from "@/gl";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Opentopia - A Turn-Based Strategy Game" },
+    {
+      name: "description",
+      content:
+        "Join the battle in this minimalist Polytopia-style strategy game!",
+    },
   ];
 }
 
