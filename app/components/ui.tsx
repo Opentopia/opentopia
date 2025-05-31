@@ -94,7 +94,7 @@ export const UI = () => {
                 {isLobby ? (
                   <motion.div
                     key="players-lobby"
-                    className="w-full"
+                    className="size-full"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -104,7 +104,7 @@ export const UI = () => {
                 ) : (
                   <motion.div
                     key="active-games-list"
-                    className="w-full"
+                    className="size-full"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -162,7 +162,29 @@ const HomeActions = () => {
           onClick={handleCreateGame}
           disabled={isCreatingGame}
         >
-          {isCreatingGame ? "Creating..." : "Create new game"}
+          <AnimatePresence mode="wait">
+            {isCreatingGame ? (
+              <motion.span
+                key="creating-game"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                Creating...
+              </motion.span>
+            ) : (
+              <motion.span
+                key="create-game"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                Create new game
+              </motion.span>
+            )}
+          </AnimatePresence>
         </Button>
       </FormField>
     </div>
@@ -171,7 +193,7 @@ const HomeActions = () => {
 
 const GameActions = ({ id }: { id: string }) => {
   return (
-    <div className="flex flex-col gap-5 w-full">
+    <div className="flex flex-col gap-5 w-full h-full">
       <FormField label="Share your code with your friends" align="center">
         <div className="flex flex-col w-full gap-3">
           <Button
@@ -265,17 +287,16 @@ const GameActions = ({ id }: { id: string }) => {
             </span>
             Share invite link
           </Button>
-
-          <Button
-            className="mt-3 py-0 px-2 h-auto w-max mx-auto"
-            variant="ghost"
-            size="default"
-            asChild
-          >
-            <Link to="/">Back to list</Link>
-          </Button>
         </div>
       </FormField>
+      <Button
+        className="mt-auto py-0 px-2 h-auto w-max mx-auto"
+        variant="ghost"
+        size="sm"
+        asChild
+      >
+        <Link to="/">Back to list</Link>
+      </Button>
     </div>
   );
 };
