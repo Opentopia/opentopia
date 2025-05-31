@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import type { Route } from "./+types/home";
 import { useParams } from "react-router";
 import useWebSocket from "react-use-websocket";
+import { mutate, type Mutation, type State } from "workers/mechanics";
+import type { JoinResponse, WSMessage } from "workers/shared-types";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,24 +14,55 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Home() {
   const { id } = useParams();
-  const { messages } = useGameConnection(id);
+  const { playerId, state, mutate } = useGame(id);
 
   return (
     <div>
-      {id}
+      <pre>{JSON.stringify({ playerId, state }, null, 2)}</pre>
       <div>
-        {messages.map((message) => (
-          <div key={message}>{message}</div>
-        ))}
+        <button
+          onClick={() =>
+            mutate({
+              type: "move",
+              warriorId: "dude",
+              to: "1:1",
+            })
+          }
+        >
+          Test move
+        </button>
       </div>
     </div>
   );
 }
 
-const useGameConnection = (id: string | undefined) => {
-  const [ws, setWs] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<string[]>([]);
+const useGame = (id: string | undefined) => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
+  const { lastMessage, sendJsonMessage } = useWebSocket(socketUrl);
+  const [state, setState] = useState<State | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(id);
+  //   const [socketUrl, setSocketUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const abortController = new AbortController();
+    const existingPlayer = window.localStorage.getItem(`game-${id}`);
+
+    fetch(`/api/games/${id}?playerId=${existingPlayer}`, {
+      method: "GET",
+      signal: abortController.signal,
+    })
+      .then(async (res) => (await res.json()) as JoinResponse)
+      .then((data) => {
+        setPlayerId(data.playerId);
+        setState(data.state);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -38,13 +71,43 @@ const useGameConnection = (id: string | undefined) => {
     setSocketUrl(`ws://${url.host}/api/games/${id}`);
   }, [id]);
 
-  const { lastMessage } = useWebSocket(socketUrl);
+  const onMutate = (mutation: Mutation) => {
+    if (!playerId) throw new Error("Player ID is not set");
+    if (!state) throw new Error("State is not set");
+    const { nextState } = mutate({
+      playerId,
+      currentState: state,
+      timestamp: Date.now(),
+      mutation,
+    });
+    setState(nextState);
+    sendJsonMessage({
+      type: "mutation",
+      playerId,
+      mutation,
+    } satisfies WSMessage);
+  };
 
   useEffect(() => {
-    if (lastMessage) {
-      setMessages((prev) => [...prev, lastMessage.data]);
-    }
-  }, [lastMessage]);
+    if (!lastMessage) return;
 
-  return { ws, messages };
+    const message = JSON.parse(lastMessage.data) as WSMessage;
+
+    switch (message.type) {
+      case "mutation":
+        onMutate(message.mutation);
+        break;
+
+      default:
+        break;
+    }
+  }, [lastMessage, onMutate]);
+
+  return {
+    playerId,
+    state,
+    mutate: (mutation: Mutation) => {
+      onMutate(mutation);
+    },
+  };
 };

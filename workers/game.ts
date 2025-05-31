@@ -1,10 +1,22 @@
 import { DurableObject } from "cloudflare:workers";
-import { mutate } from "./mechanics";
+import { mutate, type State } from "./mechanics";
+import type { JoinResponse, WSMessage } from "./shared-types";
 
 export class Game extends DurableObject {
+  private state: State;
+
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    this.ctx.storage.setAlarm(Date.now() + 5_000);
+    this.state = this.createGameState();
+  }
+
+  private createGameState(): State {
+    return {
+      map: {},
+      players: [],
+      units: [],
+      turn: { playerId: "", until: Date.now() + 30_000 },
+    };
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -31,17 +43,68 @@ export class Game extends DurableObject {
           webSocket: client,
         });
       }
+      case "/join": {
+        const existingPlayerId = url.searchParams.get("playerId");
+        if (existingPlayerId) {
+          const isInGame = this.state.players.some(
+            (p) => p.id === existingPlayerId
+          );
+          if (isInGame) {
+            return Response.json({
+              playerId: existingPlayerId,
+              state: this.state,
+            } satisfies JoinResponse);
+          } else if (this.state.status === "lobby") {
+            this.state.players.push({
+              id: existingPlayerId,
+              view: [],
+              stars: 0,
+            });
+            return Response.json({
+              playerId: existingPlayerId,
+              state: this.state,
+            } satisfies JoinResponse);
+          } else {
+            // not found
+            return Response.json(
+              { error: "Player not found" },
+              { status: 404 }
+            );
+          }
+        }
+
+        if (this.state.status === "lobby") {
+        }
+
+        return Response.json({
+          playerId: "1",
+          state: this.state,
+        } satisfies JoinResponse);
+      }
     }
 
     return new Response("Hello, world!");
   }
 
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string) {
-    // Upon receiving a message from the client, the server replies with the same message,
-    // and the total number of connections with the "[Durable Object]: " prefix
-    ws.send(
-      `[Durable Object] message: ${message}, connections: ${this.ctx.getWebSockets().length}`
-    );
+    const parsed = JSON.parse(message as string) as WSMessage;
+
+    switch (parsed.type) {
+      case "mutation": {
+        const { nextState } = mutate({
+          playerId: parsed.playerId,
+          timestamp: Date.now(),
+          currentState: this.state,
+          mutation: parsed.mutation,
+        });
+        this.state = nextState;
+        break;
+      }
+      default:
+        throw new Error(`Unknown message type ${parsed.type}`);
+    }
+
+    this.broadcast(message as string, ws);
   }
 
   async webSocketClose(
@@ -54,14 +117,9 @@ export class Game extends DurableObject {
     ws.close(code, "Durable Object is closing WebSocket");
   }
 
-  alarm(alarmInfo?: AlarmInvocationInfo): void | Promise<void> {
-    this.ctx.storage.setAlarm(Date.now() + 5_000);
-    console.log("alarm!");
-    this.broadcast("hello world");
-  }
-
-  async broadcast(message: string) {
+  async broadcast(message: string, except?: WebSocket) {
     for (const ws of this.ctx.getWebSockets()) {
+      if (ws === except) continue;
       ws.send(message);
     }
   }
