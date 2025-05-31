@@ -91,8 +91,11 @@ export const useGame = (id: string | undefined) => {
 
     switch (message.type) {
       case "mutation": {
-        const { nextState } = mutate(message.data);
-        setState(nextState);
+        setState(p => {
+          if (!p) return null;
+          const { nextState } = mutate({ ...message.data, currentState: p });
+          return nextState;
+        });
         break;
       }
 
