@@ -1,7 +1,6 @@
 import { createRequestHandler } from "react-router";
+import { api } from "./api";
 export { Game } from "./game";
-import { Hono } from "hono";
-import { env } from "cloudflare:workers";
 
 declare module "react-router" {
   export interface AppLoadContext {
@@ -16,17 +15,6 @@ const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
   import.meta.env.MODE
 );
-
-const api = new Hono();
-
-api.get("/api/games/:id", async (c) => {
-  const stub = env.GAME.get(env.GAME.idFromName(c.req.param("id")));
-
-  const url = new URL(c.req.raw.url);
-  url.pathname = "/ws";
-
-  return await stub.fetch(url, c.req.raw);
-});
 
 export default {
   async fetch(request, env, ctx) {
