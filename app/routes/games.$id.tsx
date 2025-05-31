@@ -65,10 +65,7 @@ const useGame = (id: string | undefined) => {
   const initialState = data?.state;
   const [state, setState] = useState<State | null>(null);
 
-  console.log("state", state);
-
   useEffect(() => {
-    console.log("here?????", initialState);
     if (state || !initialState) return;
     setState(initialState); // initial state
   }, [initialState, state]);
