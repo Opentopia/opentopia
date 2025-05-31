@@ -38,8 +38,8 @@ export type Tile = {
 
 export type Building = {
   type: "village";
-  ownedBy: string;
-  raidedBy?: string;
+  ownedBy: string | null;
+  raidedBy: string | null;
 };
 
 export type Unit = {
@@ -91,6 +91,9 @@ export type Mutation =
   | {
       type: "join-game";
       player: Player;
+    }
+  | {
+      type: "resign";
     };
 
 export type MutateProps = {
@@ -106,7 +109,7 @@ export function mutate({
   currentState,
   mutation,
 }: MutateProps): { nextState: State } {
-  const nextState = structuredClone(currentState);
+  let nextState = structuredClone(currentState);
 
   switch (mutation.type) {
     case "move": {
@@ -268,6 +271,42 @@ export function mutate({
           playerId: mutation.player.id,
           until: Date.now() + 30_000,
         };
+      }
+
+      break;
+    }
+    case "resign": {
+      if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
+        throw new Error("Not your turn");
+      }
+      nextState = mutate({
+        playerId,
+        timestamp,
+        currentState: nextState,
+        mutation: { type: "end-turn" },
+      }).nextState;
+
+      // Remove player from players array
+      nextState.players = nextState.players.filter((p) => p.id !== playerId);
+
+      // Set all their villages to neutral
+      for (const tile of Object.values(nextState.map)) {
+        if (
+          tile.building &&
+          tile.building.type === "village" &&
+          tile.building.ownedBy === playerId
+        ) {
+          tile.building.ownedBy = null;
+        }
+      }
+
+      // Remove all their units
+      nextState.units = nextState.units.filter((u) => u.ownedBy !== playerId);
+
+      // If only one player left, finish the game
+      if (nextState.players.length <= 1) {
+        nextState.status = "finished";
+        nextState.turn = null;
       }
 
       break;
