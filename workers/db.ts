@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { env } from "cloudflare:workers";
 
-export class GamesIndex extends DurableObject {
+export class DB extends DurableObject {
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
 

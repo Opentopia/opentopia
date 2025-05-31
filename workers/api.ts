@@ -5,13 +5,13 @@ export const api = new Hono();
 
 // get games
 api.get("/api/games", async () => {
-  const stub = env.GAMES_INDEX.get(env.GAMES_INDEX.idFromName("global"));
+  const stub = env.DB.get(env.DB.idFromName("global"));
   return await stub.getGames();
 });
 
 // create game
 api.post("/api/games", async () => {
-  const stub = env.GAMES_INDEX.get(env.GAMES_INDEX.idFromName("global"));
+  const stub = env.DB.get(env.DB.idFromName("global"));
   return await stub.createGame();
 });
 
