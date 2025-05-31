@@ -4,5 +4,5 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "cSpell.words": ["Chebyshev"],
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": false
 }

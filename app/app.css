@@ -135,12 +135,15 @@ body {
 
 @layer utilities {
   .shadow-button {
-    box-shadow: inset -4px -4px 0px 0px rgba(0, 0, 0, 0.2),
+    box-shadow:
+      inset -4px -4px 0px 0px rgba(0, 0, 0, 0.2),
       inset 2px 2px 0px 0px rgba(255, 255, 255, 0.6),
-      3px 3px 0px 0px rgba(0, 0, 0, 0.2), -2px -2px 0px 0px rgba(0, 0, 0, 0.04);
+      3px 3px 0px 0px rgba(0, 0, 0, 0.2),
+      -2px -2px 0px 0px rgba(0, 0, 0, 0.04);
 
     &:hover {
-      box-shadow: inset -2px -2px 0px 0px rgba(0, 0, 0, 0.2),
+      box-shadow:
+        inset -2px -2px 0px 0px rgba(0, 0, 0, 0.2),
         inset 1px 1px 0px 0px rgba(255, 255, 255, 0.6),
         5px 5px 0px 0px rgba(0, 0, 0, 0.2),
         -4px -4px 0px 0px rgba(0, 0, 0, 0.04);
@@ -148,18 +151,21 @@ body {
   }
 
   .shadow-input {
-    box-shadow: inset -4px -4px 0px 0px rgba(0, 0, 0, 0.2),
+    box-shadow:
+      inset -4px -4px 0px 0px rgba(0, 0, 0, 0.2),
       inset 2px 2px 0px 0px rgba(0, 0, 0, 0.6);
     background-color: var(--input-background);
   }
 
   .shadow-card {
-    box-shadow: inset -4px -4px 0px 0px rgba(0, 0, 0, 0.2),
+    box-shadow:
+      inset -4px -4px 0px 0px rgba(0, 0, 0, 0.2),
       inset 2px 2px 0px 0px rgba(255, 255, 255, 0.3);
   }
 
   .shadow-card-inset {
-    box-shadow: -4px -4px 0px 0px rgba(0, 0, 0, 0.2) inset,
+    box-shadow:
+      -4px -4px 0px 0px rgba(0, 0, 0, 0.2) inset,
       2px 2px 0px 0px rgba(255, 255, 255, 0.3) inset;
   }
 }

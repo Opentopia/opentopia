@@ -6,7 +6,7 @@ export class DB extends DurableObject {
     super(state, env);
 
     this.ctx.storage.sql.exec(
-      "create table if not exists games (id text primary key)"
+      "create table if not exists games (id text primary key)",
     );
   }
 
@@ -31,7 +31,7 @@ export class DB extends DurableObject {
         const stub = env.GAME.get(env.GAME.idFromName(id));
         const state = await stub.getState();
         return { id, state };
-      })
+      }),
     );
 
     return Response.json(resolved);

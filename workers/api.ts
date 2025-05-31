@@ -16,7 +16,7 @@ api.post("/api/games", async () => {
 });
 
 // join game
-api.get("/api/games/:id", async (c) => {
+api.get("/api/games/:id", async c => {
   const stub = env.GAME.get(env.GAME.idFromName(c.req.param("id")));
 
   const url = new URL(c.req.raw.url);
@@ -26,7 +26,7 @@ api.get("/api/games/:id", async (c) => {
 });
 
 // game ws
-api.get("/api/games/:id/ws", async (c) => {
+api.get("/api/games/:id/ws", async c => {
   const stub = env.GAME.get(env.GAME.idFromName(c.req.param("id")));
 
   const url = new URL(c.req.raw.url);

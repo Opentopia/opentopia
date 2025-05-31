@@ -31,7 +31,7 @@ function GameCodeInput({
       type="text"
       className={cn(
         "h-[80px] w-full px-4 py-3 text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis",
-        className
+        className,
       )}
       onChange={handleChange}
       maxLength={6}

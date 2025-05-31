@@ -62,7 +62,7 @@ const useGame = (id: string | undefined) => {
 
       const storage = "sessionStorage";
       const sessions = JSON.parse(
-        window[storage].getItem(`game-sessions`) || "{}"
+        window[storage].getItem(`game-sessions`) || "{}",
       ) as GameSessions;
       const existingSession = sessions[id];
       const res = await fetch(`/api/games/${id}`, {
@@ -117,7 +117,7 @@ const useGame = (id: string | undefined) => {
         mutation,
       } satisfies WSMessageSend);
     },
-    [session, playerId, state, sendJsonMessage]
+    [session, playerId, state, sendJsonMessage],
   );
 
   const [lastMessageProcessed, setLastMessageProcessed] =
