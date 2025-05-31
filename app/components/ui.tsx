@@ -3,9 +3,10 @@ import { Button } from "./ui/button";
 import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
 import { ActiveGamesList } from "./active-games-list";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Link,
+  useLocation,
   useMatch,
   useNavigate,
   useParams,
@@ -20,6 +21,12 @@ import { useGlobalStore } from "@/store/global";
 export const UI = () => {
   const { id } = useParams();
 
+  const location = useLocation();
+
+  useEffect(() => {
+    setHasUserNavigated(true);
+  }, [location]);
+
   const { playerId, gameState, isLoading } = useGlobalStore();
 
   const isGameRoute = useMatch("/games/:id");
@@ -30,27 +37,12 @@ export const UI = () => {
 
   const hasGameStarted = gameState?.status === "started";
 
+  const [hasUserNavigated, setHasUserNavigated] = useState(false);
+
   const handleJoinGame = (gameId: string) => {
     // Navigate to game route
     window.location.href = `/games/${gameId}`;
   };
-
-  const initialLoadingRef = useRef(true);
-
-  const [shouldWaitGameData, setShouldWaitGameData] = useState(false);
-
-  useEffect(() => {
-    if (isGameRoute) {
-      if (isLoading && initialLoadingRef.current) {
-        setShouldWaitGameData(true);
-      } else {
-        initialLoadingRef.current = false;
-        setShouldWaitGameData(false);
-      }
-    } else {
-      initialLoadingRef.current = false;
-    }
-  }, [isGameRoute, isLoading]);
 
   if (debug) return null;
 
@@ -59,6 +51,8 @@ export const UI = () => {
     id &&
     gameState?.status === "lobby" &&
     playerId !== undefined;
+
+  const shouldWaitGameData = (isGameRoute && isLoading) || !hasUserNavigated;
 
   return (
     <AnimatePresence mode="wait">
@@ -73,7 +67,7 @@ export const UI = () => {
             <Card className="p-2 flex flex-col md:flex-row pointer-events-auto gap-0 w-full md:w-auto h-full md:h-auto overflow-auto md:overflow-hidden">
               <div
                 id="content"
-                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 max-w-[500px] md:min-w-[350px]"
+                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 md:w-[450px]"
               >
                 <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
                   <Logo className="w-full" />
@@ -168,7 +162,7 @@ const HomeActions = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5 w-full h-full">
+    <div className="flex flex-col gap-5 w-full">
       <FormField
         label="Join a game with code"
         htmlFor="game-code"

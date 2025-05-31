@@ -28,11 +28,11 @@ function GameCodeInput({
   };
 
   return (
-    <div className="w-full max-w-xs flex-shrink h-12 md:h-[80px] min-h-12 md:min-h-[80px] max-h-12 md:max-h-[80px] flex overflow-hidden">
+    <div className="w-full h-12 md:h-[80px] min-h-12 md:min-h-[80px] max-h-12 md:max-h-[80px] flex overflow-hidden">
       <Input
         type="text"
         className={cn(
-          "w-full flex-shrink !h-full min-h-0 max-h-12 md:max-h-[80px] md:px-4 md:py-3 text-2xl md:text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis rounded-r-none border-r-0",
+          "w-full !h-full min-h-0 max-h-12 md:max-h-[80px] md:px-4 md:py-3 text-2xl md:text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis rounded-r-none border-r-0 flex-shrink",
           className,
         )}
         onChange={handleChange}
