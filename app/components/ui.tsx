@@ -27,14 +27,12 @@ export const UI = () => {
 
   const debug = searchParams.get("debug");
 
-  if (debug) return null;
-
   const handleJoinGame = (gameId: string) => {
     // Navigate to game route
     window.location.href = `/games/${gameId}`;
   };
 
-  if (!id) return null;
+  if (debug) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
@@ -50,7 +48,11 @@ export const UI = () => {
             </p>
           </div>
 
-          {isGameRoute ? <GameActions id={id} /> : <HomeActions />}
+          {isGameRoute && id && state ? (
+            <GameActions id={id} />
+          ) : (
+            <HomeActions />
+          )}
 
           <span className="mt-auto text-xs text-foreground/50">
             JOYCO x BaseHub 2025©
@@ -153,6 +155,14 @@ const GameActions = ({ id }: { id: string }) => {
               </svg>
             </span>
             Share invite link
+          </Button>
+
+          <Button
+            className="mt-3 py-0 px-2 h-auto w-max mx-auto"
+            variant="ghost"
+            asChild
+          >
+            <Link to="/">Back to list</Link>
           </Button>
         </div>
       </FormField>
