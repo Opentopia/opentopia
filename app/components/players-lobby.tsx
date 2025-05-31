@@ -4,6 +4,7 @@ import { type SVGProps } from "react";
 
 export const PlayersLobby = ({ playerId }: { playerId: string }) => {
   const g = useGlobalStore(s => s.gameState);
+  const onMutate = useGlobalStore(s => s.onMutate);
 
   if (!g) return null;
 
@@ -45,7 +46,11 @@ export const PlayersLobby = ({ playerId }: { playerId: string }) => {
 
       <div className="h-12 mt-auto flex items-center justify-center">
         {isHost ? (
-          <Button disabled={players.length < 2} className="size-full">
+          <Button
+            onClick={() => onMutate({ type: "start-game" })}
+            disabled={players.length < 2}
+            className="size-full"
+          >
             Start Game
           </Button>
         ) : (
