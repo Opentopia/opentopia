@@ -9,6 +9,7 @@ import type {
   WSMessageSend,
 } from "workers/shared-types";
 import { useQuery } from "@tanstack/react-query";
+import { GL } from "@/gl";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -27,6 +28,9 @@ export default function Home() {
     <div>
       {isMyTurn && <div>IS MY TURN</div>}
       <pre>{JSON.stringify({ playerId, state }, null, 2)}</pre>
+
+      <GL />
+
       <div>
         <button
           onClick={() =>
