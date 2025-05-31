@@ -109,8 +109,13 @@ const useGame = (id: string | undefined) => {
     [session, playerId, state, sendJsonMessage]
   );
 
+  const [lastMessageProcessed, setLastMessageProcessed] =
+    useState<MessageEvent<any> | null>(null);
+
   useEffect(() => {
     if (!lastMessage) return;
+    if (lastMessageProcessed === lastMessage) return;
+    setLastMessageProcessed(lastMessage);
 
     const message = JSON.parse(lastMessage.data) as WSMessageReceive;
 
@@ -124,7 +129,7 @@ const useGame = (id: string | undefined) => {
       default:
         break;
     }
-  }, [lastMessage, onMutate]);
+  }, [lastMessage, lastMessageProcessed, onMutate]);
 
   return {
     playerId,
