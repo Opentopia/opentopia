@@ -18,11 +18,16 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request, env, ctx) {
+    console.log("fetch", request.url);
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api")) {
       return api.fetch(request, env, ctx);
     }
+
+    // if (url.pathname === "/.well-known/appspecific/com.chrome.devtools.json") {
+    //   return;
+    // }
 
     return requestHandler(request, {
       cloudflare: { env, ctx },

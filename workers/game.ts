@@ -1,7 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
-import { sealData, unsealData, type SessionOptions } from "iron-session";
-import { mutate, type Player, type State } from "./mechanics";
-import type { JoinResponse, WSMessage } from "./shared-types";
+import { sealData, unsealData } from "iron-session";
+import { mutate, type Player, type State, type MutateProps } from "./mechanics";
+import type {
+  JoinResponse,
+  WSMessageSend,
+  WSMessageReceive,
+} from "./shared-types";
 
 const sessionOptions: { password: string; ttl?: number } = {
   password:
@@ -55,6 +59,7 @@ export class Game extends DurableObject {
         const existingSession = auth?.split(" ")[1];
         const { playerId: existingPlayerId } =
           await this.authenticate(existingSession);
+        console.log({ existingPlayerId });
 
         // if an existing player is reconnecting
         if (existingPlayerId && existingSession) {
@@ -119,6 +124,13 @@ export class Game extends DurableObject {
     };
 
     this.state.players.push(player);
+    if (this.state.players.length === 1) {
+      // is first player. give it the first turn
+      this.state.turn = {
+        playerId: player.id,
+        until: Date.now() + 30_000,
+      };
+    }
 
     const session = await sealData({ playerId: player.id }, sessionOptions);
 
@@ -141,7 +153,7 @@ export class Game extends DurableObject {
   }
 
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string) {
-    const parsed = JSON.parse(message as string) as WSMessage;
+    const parsed = JSON.parse(message as string) as WSMessageSend;
 
     const { playerId } = await this.authenticate(parsed.session);
 
@@ -152,20 +164,20 @@ export class Game extends DurableObject {
 
     switch (parsed.type) {
       case "mutation": {
-        const { nextState } = mutate({
+        const opts: MutateProps = {
           playerId,
           timestamp: Date.now(),
           currentState: this.state,
           mutation: parsed.mutation,
-        });
+        };
+        const { nextState } = mutate(opts);
         this.state = nextState;
+        this.broadcast({ type: "mutation", data: opts }, ws);
         break;
       }
       default:
         throw new Error(`Unknown message type ${parsed.type}`);
     }
-
-    this.broadcast(message as string, ws);
   }
 
   async webSocketClose(
@@ -178,10 +190,10 @@ export class Game extends DurableObject {
     ws.close(code, "Durable Object is closing WebSocket");
   }
 
-  async broadcast(message: string, except?: WebSocket) {
+  async broadcast(message: WSMessageReceive, except?: WebSocket) {
     for (const ws of this.ctx.getWebSockets()) {
       if (ws === except) continue;
-      ws.send(message);
+      ws.send(JSON.stringify(message));
     }
   }
 }

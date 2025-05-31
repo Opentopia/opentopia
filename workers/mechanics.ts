@@ -83,19 +83,29 @@ export type Mutation =
   | {
       type: "conquer";
       tileKey: TileKey;
+    }
+  | {
+      type: "end-turn";
+    }
+  | {
+      type: "join-game";
+      player: Player;
     };
+
+export type MutateProps = {
+  playerId: string;
+  timestamp: number;
+  currentState: State;
+  mutation: Mutation;
+};
 
 export function mutate({
   playerId,
   timestamp,
   currentState,
   mutation,
-}: {
-  playerId: string;
-  timestamp: number;
-  currentState: State;
-  mutation: Mutation;
-}): { nextState: State } {
+}: MutateProps): { nextState: State } {
+  console.log("mutate", mutation);
   if (!isPlayerTurn({ playerId, timestamp, state: currentState })) {
     throw new Error("Not your turn");
   }
@@ -188,6 +198,32 @@ export function mutate({
       const tile = nextState.map[mutation.tileKey];
       tile.building!.ownedBy = playerId;
       unit.movement = 0;
+      break;
+    }
+    case "end-turn": {
+      const currentPlayerIdx = nextState.players.findIndex(
+        (p) => p.id === playerId
+      );
+      const nextPlayerIdx = (currentPlayerIdx + 1) % nextState.players.length;
+      const nextPlayer = nextState.players[nextPlayerIdx];
+      console.log("nextPlayer", nextPlayer);
+      nextState.turn = {
+        playerId: nextPlayer.id,
+        until: Date.now() + 30_000,
+      };
+      break;
+    }
+    case "join-game": {
+      const currentPlayerIdx = nextState.players.findIndex(
+        (p) => p.id === playerId
+      );
+      const nextPlayerIdx = (currentPlayerIdx + 1) % nextState.players.length;
+      const nextPlayer = nextState.players[nextPlayerIdx];
+      console.log("nextPlayer", nextPlayer);
+      nextState.turn = {
+        playerId: nextPlayer.id,
+        until: Date.now() + 30_000,
+      };
       break;
     }
     default:

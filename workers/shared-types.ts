@@ -1,10 +1,19 @@
-import type { Mutation, State } from "./mechanics";
+import type { Mutation, State, MutateProps } from "./mechanics";
 
-export type WSMessage = {
+export type WSMessageSend = {
   type: "mutation";
   mutation: Mutation;
   session: string;
 };
+
+export type WSMessageReceive =
+  | {
+      type: "mutation";
+      data: MutateProps;
+    }
+  | {
+      type: "join";
+    };
 
 export type JoinResponse =
   | {
