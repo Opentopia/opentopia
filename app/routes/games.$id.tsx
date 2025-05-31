@@ -1,15 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useGlobalStore } from "@/store/global";
 import type { Route } from "./+types/home";
 import { useParams, useNavigate } from "react-router";
-import useWebSocket from "react-use-websocket";
-import { mutate, type Mutation, type State } from "workers/mechanics";
-import type {
-  JoinResponse,
-  WSMessageReceive,
-  WSMessageSend,
-} from "workers/shared-types";
-import { useQuery } from "@tanstack/react-query";
 import { GameLobby } from "@/components/ui/game-lobby";
 import { GL } from "@/gl";
 import { useGame } from "@/hooks/use-game";
