@@ -58,7 +58,7 @@ export const UI = () => {
             <Card className="p-2 flex flex-col md:flex-row pointer-events-auto gap-0 w-full md:w-auto h-full md:h-auto overflow-auto md:overflow-hidden">
               <div
                 id="content"
-                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 max-w-[500px] md:min-w-[400px]"
+                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 max-w-[500px] md:min-w-[350px]"
               >
                 <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
                   <Logo className="w-full" />
