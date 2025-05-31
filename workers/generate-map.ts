@@ -5,11 +5,10 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
   // 2 players: 12x12, 3 players: 14x14, 4 players: 16x16
   const mapSize = Math.max(12, Math.min(16, 10 + numberOfPlayers * 2));
 
-  // Calculate number of villages based on map size and players
-  // Aim for roughly 3-4 villages per player, but spread evenly
-  const totalVillages = Math.max(
-    numberOfPlayers * 3,
-    Math.floor(mapSize * mapSize * 0.08),
+  // Calculate number of neutral villages (in addition to starting villages)
+  const neutralVillages = Math.max(
+    numberOfPlayers * 2,
+    Math.floor(mapSize * mapSize * 0.06),
   );
 
   const map: Record<string, Tile> = {};
@@ -27,14 +26,35 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
     }
   }
 
-  // Second pass: Place villages on grass tiles with minimum distance
-  const villages = placeVillages(map, mapSize, totalVillages);
+  // Second pass: Place starting villages for each player (well separated)
+  const startingVillages = placeStartingVillages(map, mapSize, numberOfPlayers);
 
-  // Add villages to the map
-  villages.forEach(({ x, y }) => {
+  // Add starting villages to the map
+  startingVillages.forEach(({ x, y, playerId }) => {
     const key = `${x}:${y}`;
     if (map[key] && map[key].kind === "grass") {
-      map[key].building = { type: "village", ownedBy: null, raidedBy: null }; // No ownedBy - starts neutral
+      map[key].building = {
+        type: "village",
+        ownedBy: playerId,
+        raidedBy: null,
+      };
+    }
+  });
+
+  // Third pass: Place neutral villages with minimum distance from all existing villages
+  const existingVillages = startingVillages.map(v => ({ x: v.x, y: v.y }));
+  const neutralVillagePositions = placeVillages(
+    map,
+    mapSize,
+    neutralVillages,
+    existingVillages,
+  );
+
+  // Add neutral villages to the map
+  neutralVillagePositions.forEach(({ x, y }) => {
+    const key = `${x}:${y}`;
+    if (map[key] && map[key].kind === "grass") {
+      map[key].building = { type: "village", ownedBy: null, raidedBy: null };
     }
   });
 
@@ -70,10 +90,154 @@ function calculateRockProbability(
   return Math.min(0.4, probability); // Cap at 40% rock probability
 }
 
+function placeStartingVillages(
+  map: Record<string, Tile>,
+  mapSize: number,
+  numberOfPlayers: number,
+): Array<{ x: number; y: number; playerId: string }> {
+  const startingVillages: Array<{ x: number; y: number; playerId: string }> =
+    [];
+  const margin = Math.floor(mapSize * 0.15); // Keep starting villages away from edges
+
+  // Define starting positions based on number of players
+  const startingPositions = getStartingPositions(
+    mapSize,
+    numberOfPlayers,
+    margin,
+  );
+
+  for (let i = 0; i < numberOfPlayers; i++) {
+    const playerId = `player${i + 1}`;
+    const targetPosition = startingPositions[i];
+
+    // Find the nearest grass tile to the target position
+    let bestPosition = findNearestGrassTile(
+      map,
+      targetPosition.x,
+      targetPosition.y,
+      mapSize,
+    );
+
+    // Ensure this position isn't too close to other starting villages
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    while (attempts < maxAttempts) {
+      const tooClose = startingVillages.some(village => {
+        const distance = Math.max(
+          Math.abs(village.x - bestPosition.x),
+          Math.abs(village.y - bestPosition.y),
+        );
+        return distance < Math.floor(mapSize / 4); // Minimum distance between starting villages
+      });
+
+      if (!tooClose) {
+        break;
+      }
+
+      // Try a nearby position
+      const offsetX = (Math.random() - 0.5) * Math.floor(mapSize / 3);
+      const offsetY = (Math.random() - 0.5) * Math.floor(mapSize / 3);
+      const newX = Math.max(
+        margin,
+        Math.min(mapSize - 1 - margin, Math.floor(targetPosition.x + offsetX)),
+      );
+      const newY = Math.max(
+        margin,
+        Math.min(mapSize - 1 - margin, Math.floor(targetPosition.y + offsetY)),
+      );
+
+      bestPosition = findNearestGrassTile(map, newX, newY, mapSize);
+      attempts++;
+    }
+
+    startingVillages.push({ x: bestPosition.x, y: bestPosition.y, playerId });
+  }
+
+  return startingVillages;
+}
+
+function getStartingPositions(
+  mapSize: number,
+  numberOfPlayers: number,
+  margin: number,
+): Array<{ x: number; y: number }> {
+  const positions: Array<{ x: number; y: number }> = [];
+
+  if (numberOfPlayers === 1) {
+    // Single player in center
+    positions.push({ x: Math.floor(mapSize / 2), y: Math.floor(mapSize / 2) });
+  } else if (numberOfPlayers === 2) {
+    // Opposite corners
+    positions.push({ x: margin, y: margin });
+    positions.push({ x: mapSize - 1 - margin, y: mapSize - 1 - margin });
+  } else if (numberOfPlayers === 3) {
+    // Triangle formation
+    positions.push({ x: margin, y: margin });
+    positions.push({ x: mapSize - 1 - margin, y: margin });
+    positions.push({ x: Math.floor(mapSize / 2), y: mapSize - 1 - margin });
+  } else if (numberOfPlayers === 4) {
+    // Four corners
+    positions.push({ x: margin, y: margin });
+    positions.push({ x: mapSize - 1 - margin, y: margin });
+    positions.push({ x: margin, y: mapSize - 1 - margin });
+    positions.push({ x: mapSize - 1 - margin, y: mapSize - 1 - margin });
+  } else {
+    // For more than 4 players, distribute them around the perimeter
+    for (let i = 0; i < numberOfPlayers; i++) {
+      const angle = (i / numberOfPlayers) * 2 * Math.PI;
+      const radius = (mapSize - 2 * margin) / 2;
+      const centerX = mapSize / 2;
+      const centerY = mapSize / 2;
+
+      const x = Math.floor(centerX + radius * Math.cos(angle));
+      const y = Math.floor(centerY + radius * Math.sin(angle));
+
+      // Ensure positions are within bounds
+      const clampedX = Math.max(margin, Math.min(mapSize - 1 - margin, x));
+      const clampedY = Math.max(margin, Math.min(mapSize - 1 - margin, y));
+
+      positions.push({ x: clampedX, y: clampedY });
+    }
+  }
+
+  return positions;
+}
+
+function findNearestGrassTile(
+  map: Record<string, Tile>,
+  targetX: number,
+  targetY: number,
+  mapSize: number,
+): { x: number; y: number } {
+  // Start from target position and spiral outward
+  for (let radius = 0; radius < mapSize; radius++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        if (Math.abs(dx) === radius || Math.abs(dy) === radius) {
+          const x = targetX + dx;
+          const y = targetY + dy;
+
+          if (x >= 0 && x < mapSize && y >= 0 && y < mapSize) {
+            const key = `${x}:${y}`;
+            if (map[key] && map[key].kind === "grass") {
+              return { x, y };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback: return target position (shouldn't happen with reasonable rock density)
+  return { x: targetX, y: targetY };
+}
+
 function placeVillages(
   map: Record<string, Tile>,
   mapSize: number,
   targetVillages: number,
+  existingVillages: Array<{ x: number; y: number }> = [],
 ): Array<{ x: number; y: number }> {
   const villages: Array<{ x: number; y: number }> = [];
   const minDistance = Math.max(2, Math.floor(mapSize / 6)); // Minimum distance between villages
@@ -94,8 +258,9 @@ function placeVillages(
       continue;
     }
 
-    // Check distance from existing villages
-    const tooClose = villages.some(village => {
+    // Check distance from existing villages (both neutral and starting)
+    const allExistingVillages = [...existingVillages, ...villages];
+    const tooClose = allExistingVillages.some(village => {
       const distance = Math.max(
         Math.abs(village.x - x),
         Math.abs(village.y - y),
@@ -124,7 +289,8 @@ function placeVillages(
         continue;
       }
 
-      const tooClose = villages.some(village => {
+      const allExistingVillages = [...existingVillages, ...villages];
+      const tooClose = allExistingVillages.some(village => {
         const distance = Math.max(
           Math.abs(village.x - x),
           Math.abs(village.y - y),
