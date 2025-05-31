@@ -22,6 +22,7 @@ const TURN_DURATION = 60_000; // 1 minute
 export type TileKey = `${number},${number}`;
 
 export type State = {
+  id: string;
   status: "lobby" | "started" | "finished";
   map: Record<TileKey, Tile>;
   units: Unit[];
