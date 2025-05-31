@@ -3,5 +3,6 @@
     "wrangler.json": "jsonc"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
-  "cSpell.words": ["Chebyshev"]
+  "cSpell.words": ["Chebyshev"],
+  "editor.formatOnSave": false,
 }
