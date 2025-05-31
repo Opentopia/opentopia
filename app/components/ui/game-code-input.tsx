@@ -32,7 +32,7 @@ function GameCodeInput({
       <Input
         type="text"
         className={cn(
-          "h-[80px] w-full px-4 py-3 text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis rounded-r-none border-r-0",
+          "h-auto md:h-[80px] w-full md:px-4 md:py-3 text-2xl md:text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis rounded-r-none border-r-0",
           className,
         )}
         onChange={handleChange}
@@ -42,7 +42,7 @@ function GameCodeInput({
       />
       <Button
         variant="tertiary"
-        className="h-[80px] aspect-square rounded-l-none"
+        className="md:h-[80px] aspect-square rounded-l-none"
       >
         <svg
           className="size-5"

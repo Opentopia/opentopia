@@ -54,11 +54,11 @@ export const UI = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
-            <Card className="p-2 flex flex-row pointer-events-auto gap-0">
+          <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-foreground/30 p-1.5">
+            <Card className="p-2 flex flex-col md:flex-row pointer-events-auto gap-0 w-full md:w-auto h-full md:h-auto overflow-auto md:overflow-hidden">
               <div
                 id="content"
-                className="flex flex-col gap-12 items-center bg-background shadow-card-inset p-10 pb-6 max-w-[500px] md:min-w-[400px]"
+                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 max-w-[500px] md:min-w-[400px]"
               >
                 <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
                   <Logo className="w-full" />
@@ -71,7 +71,7 @@ export const UI = () => {
                   {isLobby ? (
                     <motion.div
                       key="game-actions"
-                      className="w-full h-[250px]"
+                      className="w-full h-[200px] md:h-[250px]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -81,7 +81,7 @@ export const UI = () => {
                   ) : (
                     <motion.div
                       key="home-actions"
-                      className="w-full h-[250px]"
+                      className="w-full h-[200px] md:h-[250px]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -95,7 +95,7 @@ export const UI = () => {
                   JOYCO x BaseHub 2025©
                 </span>
               </div>
-              <div className="w-full md:w-[450px]">
+              <div className="w-full md:w-[350px]">
                 <AnimatePresence mode="wait"></AnimatePresence>
                 {isLobby && playerId ? (
                   <motion.div
@@ -204,7 +204,7 @@ const GameActions = ({ id }: { id: string }) => {
         <div className="flex flex-col w-full gap-3">
           <Button
             variant="secondary"
-            className="h-[80px] w-full px-4 py-3 text-5xl"
+            className="md:h-[80px] w-full px-4 py-3 text-2xl md:text-5xl"
             onClick={() => {
               navigator.clipboard.writeText(id);
             }}
@@ -308,13 +308,7 @@ const GameActions = ({ id }: { id: string }) => {
 };
 
 const Logo = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    width="433"
-    height="54"
-    viewBox="0 0 433 54"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg viewBox="0 0 433 54" fill="none" xmlns="http://www.w3.org/2000/svg">
     <mask
       id="path-1-outside-1_20_1486"
       maskUnits="userSpaceOnUse"
