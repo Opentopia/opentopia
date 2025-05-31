@@ -1,5 +1,6 @@
 import { createRequestHandler } from "react-router";
 import { api } from "./api";
+export { GamesIndex } from "./games";
 export { Game } from "./game";
 
 declare module "react-router" {
