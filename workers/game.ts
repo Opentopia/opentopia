@@ -57,8 +57,9 @@ export class Game extends DurableObject {
       case "/join": {
         const auth = request.headers.get("authorization");
         const existingSession = auth?.split(" ")[1];
-        const { playerId: existingPlayerId } =
-          await this.authenticate(existingSession);
+        const { playerId: existingPlayerId } = await this.authenticate(
+          existingSession
+        );
 
         // if an existing player is reconnecting
         if (existingPlayerId && existingSession) {
@@ -176,6 +177,17 @@ export class Game extends DurableObject {
           mutation: parsed.mutation,
         };
         const { nextState } = mutate(opts);
+        if (this.state.turn?.until !== nextState.turn?.until) {
+          if (this.state.turn?.until) {
+            // Cancel the previous alarm
+            await this.ctx.storage.deleteAlarm();
+          }
+
+          if (nextState.turn?.until) {
+            // Set a new alarm for the next turn's end
+            await this.ctx.storage.setAlarm(nextState.turn.until);
+          }
+        }
         this.state = nextState;
         this.broadcast({ type: "mutation", data: opts }, ws);
         break;
@@ -199,6 +211,24 @@ export class Game extends DurableObject {
     for (const ws of this.ctx.getWebSockets()) {
       if (ws === except) continue;
       ws.send(JSON.stringify(message));
+    }
+  }
+
+  async alarm() {
+    // End the current turn if there is one
+    if (this.state.turn && this.state.turn.playerId) {
+      const opts = {
+        playerId: this.state.turn.playerId,
+        timestamp: Date.now(),
+        currentState: this.state,
+        mutation: { type: "end-turn" } as const,
+      };
+      const { nextState } = mutate(opts);
+      this.state = nextState;
+      if (nextState.turn?.until) {
+        await this.ctx.storage.setAlarm(nextState.turn.until);
+      }
+      this.broadcast({ type: "mutation", data: opts });
     }
   }
 }
