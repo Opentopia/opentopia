@@ -4,7 +4,7 @@ import { OrbitControls, OrthographicCamera, PerspectiveCamera, useTexture } from
 import * as THREE from 'three';
 import type { Tile } from 'workers/mechanics';
 import { map } from './mock';
-import { useGlobalStore } from '~/store/global';
+import { useGlobalStore } from '../store/global';
 
 interface BlockProps extends Tile {
   position: [number, number, number];
