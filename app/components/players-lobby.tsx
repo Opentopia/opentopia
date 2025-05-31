@@ -7,7 +7,7 @@ export const PlayersLobby = ({ playerId }: { playerId: string }) => {
 
   if (!g) return null;
 
-  const { players, id } = g;
+  const { players } = g;
 
   const gameHost = players.find(p => p.isHost);
   const isHost = gameHost?.id === playerId;
@@ -30,7 +30,11 @@ export const PlayersLobby = ({ playerId }: { playerId: string }) => {
             className="flex flex-col gap-2 bg-card shadow-card-inset-secondary border border-border"
           >
             <div className="w-full min-h-20 bg-accent/10 border-b border-border/20 flex items-center justify-center">
-              <RandomIcon className="size-12" />
+              <PlayerIcon
+                className="size-12"
+                mainColor={player.colors[0]}
+                secondaryColor={player.colors[1]}
+              />
             </div>
             <p className="text-sm font-display text-foreground/50 text-center py-1.5 px-3">
               {player.name}
@@ -54,9 +58,14 @@ export const PlayersLobby = ({ playerId }: { playerId: string }) => {
   );
 };
 
-const RandomIcon = (props: SVGProps<SVGSVGElement>) => {
-  const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-  const randomColor2 = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+const PlayerIcon = ({
+  mainColor,
+  secondaryColor,
+  ...props
+}: SVGProps<SVGSVGElement> & {
+  mainColor: string;
+  secondaryColor: string;
+}) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -67,17 +76,17 @@ const RandomIcon = (props: SVGProps<SVGSVGElement>) => {
       {...props}
     >
       <path fill="#000" d="M.5 0h32v32H.5z" />
-      <path fill={randomColor} d="M1.115.615h30.769v30.769H1.115z" />
+      <path fill={mainColor} d="M1.115.615h30.769v30.769H1.115z" />
       <path
         fill="#000"
         d="M7.269 11.692H12.5V16H7.269zM20.5 11.692h5.231V16H20.5z"
       />
       <path
-        fill={randomColor2}
+        fill={secondaryColor}
         d="M1.115.615h30.769v7.077H1.115zM14.961 24.308h3.077v3.385h-3.077zM1.115 7.692h3.077v5.846H1.115zM4.192 7.692h1.846v2.154H4.192z"
       />
       <path
-        fill={randomColor2}
+        fill={secondaryColor}
         d="M13.116 6.461h1.846v2.154h-1.846zM15.577 27.692h1.846v.923h-1.846zM26.961 7.692h1.846v2.154h-1.846zM28.808 7.692h3.077v5.846h-3.077z"
       />
       <path fill="#000" d="M12.808 22.154H20.5v1.538h-7.692z" />
