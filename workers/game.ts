@@ -10,12 +10,10 @@ const sessionOptions: { password: string; ttl?: number } = {
 
 export class Game extends DurableObject {
   private state: State;
-  private sessionPassword: string;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
     this.state = this.createGameState();
-    this.sessionPassword = crypto.randomUUID();
   }
 
   private createGameState(): State {
