@@ -201,14 +201,8 @@ const GameActions = ({ id }: { id: string }) => {
                 .catch(err => console.error(err));
             }}
           >
-            <span className="size-5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
+            <span className="size-5 mr-2">
+              <svg className="size-full" viewBox="0 0 24 24" fill="none">
                 <path
                   stroke="#000"
                   strokeWidth={2}
