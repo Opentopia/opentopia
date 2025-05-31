@@ -401,6 +401,8 @@ function validateMove({
   const destTile = state.map[mutation.to];
   if (!destTile)
     return { success: false, reason: "Destination tile does not exist" };
+  if (destTile.kind === "rock")
+    return { success: false, reason: "Cannot move onto rock tile" };
   const occupied = state.units.some(u => u.tileKey === mutation.to);
   if (occupied)
     return { success: false, reason: "Destination tile is occupied" };
