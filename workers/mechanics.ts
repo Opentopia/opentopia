@@ -24,18 +24,18 @@ export type TileKey = `${number},${number}`;
 export type State = {
   status: "lobby" | "started" | "finished";
   map: Record<TileKey, Tile>;
+  units: Unit[];
   turn: null | {
     playerId: string;
     until: number;
   };
   players: Player[];
-  units: Unit[];
 };
 
 export type Tile = {
   x: number;
   y: number;
-  kind: "rock" | "grass";
+  kind: "rock" | "grass" | "fog";
   building?: Building;
 };
 

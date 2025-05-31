@@ -127,12 +127,12 @@ const Block: React.FC<BlockProps> = ({
 };
 
 interface GridProps {
-  gridSize: number;
   spacing: number;
   map: State["map"];
 }
 
-const Grid: React.FC<GridProps> = ({ gridSize = 32, spacing = 0.1, map }) => {
+const Grid: React.FC<GridProps> = ({ spacing = 0.1, map }) => {
+  const gridSize = Math.sqrt(Object.keys(map).length);
   const { hoveredBlock, hoverBlock } = useGlobalStore();
   const blockSize = 1 - spacing;
 
@@ -398,7 +398,7 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
       />
 
       {/* Grid of Blocks */}
-      <Grid gridSize={32} spacing={spacing} map={gameState.map} />
+      <Grid spacing={spacing} map={gameState.map} />
 
       <Buildings />
 
