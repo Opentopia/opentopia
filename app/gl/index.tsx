@@ -11,7 +11,9 @@ import * as THREE from "three";
 import type { Tile, State, Unit, TileKey } from "workers/mechanics";
 import { useGlobalStore } from "../store/global";
 
-const SPACING = 0.01;
+const SPACING = 0.05;
+
+const fogMaterial = new THREE.MeshStandardMaterial({ color: "white" });
 
 const useMapBounds = (map: Record<string, Tile>) => {
   return useMemo(() => {
@@ -86,6 +88,17 @@ const Block: React.FC<BlockProps> = ({
   ) as unknown as THREE.Texture[];
 
   const materials = useMemo(() => {
+    if (kind === "fog") {
+      return [
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+        fogMaterial,
+      ];
+    }
+
     const top = new THREE.MeshStandardMaterial({
       map: kind === "rock" ? rockTexture[1] : grassTexture[1],
     });
@@ -358,35 +371,38 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
 const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
   const swordTexture = useTexture("/textures/sword.png");
+  const selectedUnit = useGlobalStore(s => s.selectedUnit);
   const myId = useGlobalStore(s => s.playerId);
   const mapBounds = useMapBounds(map);
   const unitSize = 0.4;
   const blockSize = 1 - SPACING;
   const spriteSize = 0.5;
-  const selectedUnit = useGlobalStore(s => s.selectedUnit);
-
-  console.log({ selectedUnit });
 
   const renderUnits = useMemo(() => {
     if (!mapBounds) return [];
 
-    return units.map(unit => {
-      const posX = map[unit.tileKey].x - mapBounds.centerX;
-      const posZ = map[unit.tileKey].y - mapBounds.centerZ;
-      const baseY = blockSize / 2 + unitSize / 2;
-      const posY = unit.id === selectedUnit ? baseY + 0.25 : baseY;
+    return units
+      .filter(unit => {
+        const tile = map[unit.tileKey];
+        return tile && tile.kind !== "fog";
+      })
+      .map(unit => {
+        const posX = map[unit.tileKey].x - mapBounds.centerX;
+        const posZ = map[unit.tileKey].y - mapBounds.centerZ;
+        const baseY = blockSize / 2 + unitSize / 2;
+        const posY = unit.id === selectedUnit ? baseY + 0.25 : baseY;
 
-      return {
-        id: unit.id,
-        isOwnedByMe: unit.ownedBy === myId,
-        position: [posX, posY, posZ] as const,
-        spritePosition: [
-          posX - 0.15,
-          posY + unitSize / 2 + spriteSize / 2 + 0.1,
-          posZ,
-        ] as const,
-      };
-    });
+        return {
+          id: unit.id,
+          isOwnedByMe: unit.ownedBy === myId,
+          position: [posX, posY, posZ] as const,
+          spritePosition: [
+            posX - 0.15,
+            posY + unitSize / 2 + spriteSize / 2 + 0.1,
+            posZ,
+          ] as const,
+        };
+      });
   }, [units, map, mapBounds, selectedUnit]);
 
   return (
@@ -452,9 +468,10 @@ interface MapProps {
 
 export const Game = ({ spacing = SPACING }: MapProps) => {
   const gameState = useGlobalStore(s => s.gameState);
+  const map = useGlobalStore(s => s.mapView);
   const myId = useGlobalStore(s => s.playerId);
 
-  if (!gameState) return null;
+  if (!gameState || !map) return null;
 
   return (
     <Canvas style={{ width: "100%", height: "100vh" }} gl={{ antialias: true }}>
@@ -487,11 +504,11 @@ export const Game = ({ spacing = SPACING }: MapProps) => {
       />
 
       {/* Grid of Blocks */}
-      <Grid spacing={spacing} map={gameState.map} />
+      <Grid spacing={spacing} map={map} />
 
-      <Buildings map={gameState.map} />
+      <Buildings map={map} />
 
-      <Units units={gameState.units} map={gameState.map} />
+      <Units units={gameState.units} map={map} />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls
