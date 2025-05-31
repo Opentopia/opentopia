@@ -48,30 +48,18 @@ export default function GamePage() {
               </div>
             )}
 
-            <Button variant="tertiary" size="lg" onClick={handleBackToHome}>
-              Back home
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="tertiary"
+                size="lg"
+                onClick={() => mutate({ type: "resign" })}
+              >
+                Resign
+              </Button>
+            </div>
 
             <div className="bg-black/80 text-white p-4 rounded-md max-w-md">
               <div className="flex gap-2">
-                <button
-                  className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
-                  onClick={() =>
-                    mutate({
-                      type: "move",
-                      unitId: "dude",
-                      to: "1,1",
-                    })
-                  }
-                >
-                  Test move
-                </button>
-                <button
-                  className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm"
-                  onClick={handleBackToHome}
-                >
-                  Back to home
-                </button>
                 {state.turn?.playerId === playerId ? (
                   <Button
                     disabled={!isMyTurn}
@@ -81,10 +69,7 @@ export default function GamePage() {
                     End turn
                   </Button>
                 ) : (
-                  <span
-                    className="bg-gray-600  px-3 py-1 rounded text-sm"
-                    onClick={() => mutate({ type: "end-turn" })}
-                  >
+                  <span className="bg-gray-600  px-3 py-1 rounded text-sm">
                     Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
                   </span>
                 )}
