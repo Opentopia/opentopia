@@ -485,11 +485,12 @@ const Units = ({ units, map }: { units: Unit[]; map: State["map"] }) => {
 
 const Buildings = ({ map }: { map: State["map"] }) => {
   const buildingModel = useGLTF("/models/village.glb");
+  const gameState = useGlobalStore(s => s.gameState);
   const mapBounds = useMapBounds(map);
   const blockSize = 1 - SPACING;
 
   const buildings = useMemo(() => {
-    if (!mapBounds) return [];
+    if (!mapBounds || !gameState) return [];
 
     const buildingTiles = Object.values(map).filter(tile => tile.building);
     const { centerX, centerZ } = mapBounds;
@@ -499,16 +500,35 @@ const Buildings = ({ map }: { map: State["map"] }) => {
       const posZ = tile.y - centerZ;
       const posY = blockSize / 2; // Elevate by block height
 
+      const tileKey = `${tile.x},${tile.y}`;
+      const hasUnit = gameState.units.some(unit => unit.tileKey === tileKey);
+
+      if (hasUnit) {
+        buildingModel.scene.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            child.material.transparent = true;
+            child.material.opacity = 0.5;
+          }
+        });
+      } else {
+        buildingModel.scene.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            child.material.transparent = false;
+            child.material.opacity = 1;
+          }
+        });
+      }
+
       return (
         <primitive
           key={`building-${tile.x}-${tile.y}`}
           scale={0.08}
           position={[posX, posY, posZ]}
-          object={buildingModel.scene.clone()}
+          object={buildingModel.scene}
         />
       );
     });
-  }, [mapBounds, buildingModel.scene, blockSize]);
+  }, [mapBounds, buildingModel.scene, blockSize, gameState]);
 
   return <>{buildings}</>;
 };

@@ -101,6 +101,7 @@ export type Mutation =
   | {
       type: "start-game";
       map: Record<TileKey, Tile>;
+      units: Unit[];
     }
   | {
       type: "end-turn";
@@ -342,39 +343,7 @@ export function mutate({
       }
       nextState.status = "started";
       nextState.map = mutation.map;
-
-      // Create starting warrior units for each player's starting village
-      nextState.units = [];
-      for (let i = 0; i < nextState.players.length; i++) {
-        const currentPlayer = nextState.players[i];
-        const playerMapId = `player${i + 1}`; // generateMap uses player1, player2, etc.
-
-        // Find the starting village for this player
-        const startingVillage = Object.values(nextState.map).find(
-          tile =>
-            tile.building &&
-            tile.building.type === "village" &&
-            tile.building.ownedBy === playerMapId,
-        );
-
-        if (startingVillage) {
-          // Update the village ownership to use the real player ID
-          startingVillage.building!.ownedBy = currentPlayer.id;
-
-          // Create a warrior unit in this village
-          nextState.units.push({
-            id: crypto.randomUUID(),
-            tileKey: `${startingVillage.x},${startingVillage.y}` as TileKey,
-            type: "warrior",
-            attack: 2,
-            defense: 2,
-            range: 1,
-            movement: 1,
-            health: 10,
-            ownedBy: currentPlayer.id,
-          });
-        }
-      }
+      nextState.units = mutation.units;
 
       nextState.turn = {
         playerId: player.id,
@@ -432,6 +401,8 @@ function validateMove({
   const destTile = state.map[mutation.to];
   if (!destTile)
     return { success: false, reason: "Destination tile does not exist" };
+  if (destTile.kind === "rock")
+    return { success: false, reason: "Cannot move onto rock tile" };
   const occupied = state.units.some(u => u.tileKey === mutation.to);
   if (occupied)
     return { success: false, reason: "Destination tile is occupied" };
