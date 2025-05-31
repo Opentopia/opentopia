@@ -54,14 +54,14 @@ function GameCodeInput({
             <path
               d="M9.83325 12L13.8333 8L9.83325 4"
               stroke="black"
-              stroke-width="1.33333"
-              stroke-linecap="square"
+              strokeWidth="1.33333"
+              strokeLinecap="square"
             />
             <path
               d="M13.1667 8L3.16675 8"
               stroke="black"
-              stroke-width="1.33333"
-              stroke-linecap="square"
+              strokeWidth="1.33333"
+              strokeLinecap="square"
             />
           </g>
         </svg>
