@@ -4,22 +4,68 @@ import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
 import { ActiveGamesList } from "./ui/active-games-list";
 import { useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import {
+  Link,
+  useMatch,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { type SVGProps } from "react";
 import type { CreateGameResponse } from "workers/shared-types";
 import { useGame } from "@/hooks/use-game";
 
 export const UI = () => {
   const { id } = useParams();
+
   const navigate = useNavigate();
   const { playerId, state, mutate } = useGame(id);
-  const [searchParams] = useSearchParams();
 
-  const [isCreatingGame, setIsCreatingGame] = useState(false);
+  const isGameRoute = useMatch("/games/:id");
+
+  const [searchParams] = useSearchParams();
 
   const debug = searchParams.get("debug");
 
   if (debug) return null;
+
+  const handleJoinGame = (gameId: string) => {
+    // Navigate to game route
+    window.location.href = `/games/${gameId}`;
+  };
+
+  if (!id) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
+      <Card className="p-2 flex flex-row pointer-events-auto gap-0">
+        <div
+          id="content"
+          className="flex flex-col gap-12 items-center bg-background shadow-card-inset p-10 pb-6 max-w-[500px] md:min-w-[400px]"
+        >
+          <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
+            <Logo className="w-full" />
+            <p className="italic font-mono font-medium text-xs text-foreground/50">
+              A turn based odyssey in the browser
+            </p>
+          </div>
+
+          {isGameRoute ? <GameActions id={id} /> : <HomeActions />}
+
+          <span className="mt-auto text-xs text-foreground/50">
+            JOYCO x BaseHub 2025©
+          </span>
+        </div>
+        <div className="w-full md:w-[450px]">
+          <ActiveGamesList className="w-full" onJoinGame={handleJoinGame} />
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const HomeActions = () => {
+  const [isCreatingGame, setIsCreatingGame] = useState(false);
 
   const handleCreateGame = async () => {
     try {
@@ -40,53 +86,76 @@ export const UI = () => {
     }
   };
 
-  const handleJoinGame = (gameId: string) => {
-    // Navigate to game route
-    window.location.href = `/games/${gameId}`;
-  };
-
   return (
-    <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
-      <Card className="p-2 flex flex-row pointer-events-auto gap-0">
-        <div
-          id="content"
-          className="flex flex-col gap-12 items-center bg-background shadow-card-inset p-10 pb-6 max-w-[500px] md:min-w-[400px]"
+    <div className="flex flex-col gap-5 w-full">
+      <FormField
+        label="Join a game with code"
+        htmlFor="game-code"
+        align="center"
+      >
+        <GameCodeInput type="text" id="game-code" />
+      </FormField>
+
+      <FormField label="Or create yours" align="center">
+        <Button
+          className="w-full"
+          onClick={handleCreateGame}
+          disabled={isCreatingGame}
         >
-          <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
-            <Logo className="w-full" />
-            <p className="italic font-mono font-medium text-xs text-foreground/50">
-              A turn based odyssey in the browser
-            </p>
-          </div>
+          {isCreatingGame ? "Creating..." : "Create new game"}
+        </Button>
+      </FormField>
+    </div>
+  );
+};
 
-          <div className="flex flex-col gap-5 w-full">
-            <FormField
-              label="Join a game with code"
-              htmlFor="game-code"
-              align="center"
-            >
-              <GameCodeInput type="text" id="game-code" />
-            </FormField>
-
-            <FormField label="Or create yours" align="center">
-              <Button
-                className="w-full"
-                onClick={handleCreateGame}
-                disabled={isCreatingGame}
+const GameActions = ({ id }: { id: string }) => {
+  return (
+    <div className="flex flex-col gap-5 w-full">
+      <FormField label="Share your code with your friends" align="center">
+        <div className="flex flex-col w-full gap-3">
+          <Button
+            variant="secondary"
+            className="h-[80px] w-full px-4 py-3 text-5xl"
+            onClick={() => {
+              navigator.clipboard.writeText(id);
+            }}
+          >
+            {id}
+          </Button>
+          <Button
+            variant="tertiary"
+            className="w-full"
+            onClick={() => {
+              navigator
+                .share({
+                  title: document.title,
+                  text: "Hello World",
+                  url: window.location.href,
+                })
+                .then(() => console.log("Successful share! 🎉"))
+                .catch(err => console.error(err));
+            }}
+          >
+            <span className="size-5">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
               >
-                {isCreatingGame ? "Creating..." : "Create new game"}
-              </Button>
-            </FormField>
-          </div>
-
-          <span className="mt-auto text-xs text-foreground/50">
-            JOYCO x BaseHub 2025©
-          </span>
+                <path
+                  stroke="#000"
+                  strokeWidth={2}
+                  d="m9.165 13.38 5.67 3.24M9.5 12a3 3 0 1 1-5.998 0A3 3 0 0 1 9.5 12ZM20.5 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM20.5 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM14.835 7.38l-5.67 3.24"
+                />
+              </svg>
+            </span>
+            Share invite link
+          </Button>
         </div>
-        <div className="w-full md:w-[450px]">
-          <ActiveGamesList className="w-full" onJoinGame={handleJoinGame} />
-        </div>
-      </Card>
+      </FormField>
     </div>
   );
 };
