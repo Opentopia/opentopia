@@ -117,7 +117,6 @@ export class Game extends DurableObject {
       view: [],
       stars: 0,
     };
-    console.log("creating player", player);
 
     this.state.players.push(player);
 
