@@ -328,7 +328,7 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
     velocitiesRef.current = velocities;
     return { positions, velocities };
-  }, [count, cubeSize, speed, position]);
+  }, [count, cubeSize, speed, position[0], position[1], position[2]]);
 
   useFrame(() => {
     if (!pointsRef.current || !velocitiesRef.current) return;
