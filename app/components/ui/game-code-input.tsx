@@ -28,11 +28,11 @@ function GameCodeInput({
   };
 
   return (
-    <div className="w-full flex">
+    <div className="w-full max-w-xs flex-shrink h-12 md:h-[80px] min-h-12 md:min-h-[80px] max-h-12 md:max-h-[80px] flex overflow-hidden">
       <Input
         type="text"
         className={cn(
-          "h-auto md:h-[80px] w-full md:px-4 md:py-3 text-2xl md:text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis rounded-r-none border-r-0",
+          "w-full flex-shrink !h-full min-h-0 max-h-12 md:max-h-[80px] md:px-4 md:py-3 text-2xl md:text-5xl text-center font-display font-bold uppercase overflow-hidden text-ellipsis rounded-r-none border-r-0",
           className,
         )}
         onChange={handleChange}
@@ -40,9 +40,10 @@ function GameCodeInput({
         placeholder={placeholder}
         {...props}
       />
+
       <Button
         variant="tertiary"
-        className="md:h-[80px] aspect-square rounded-l-none"
+        className="h-12 md:h-[80px] min-h-12 md:min-h-[80px] max-h-12 md:max-h-[80px] aspect-square rounded-l-none flex-shrink-0"
       >
         <svg
           className="size-5"

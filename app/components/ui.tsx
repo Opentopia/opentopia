@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
 import { ActiveGamesList } from "./active-games-list";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   useMatch,
@@ -35,6 +35,23 @@ export const UI = () => {
     window.location.href = `/games/${gameId}`;
   };
 
+  const initialLoadingRef = useRef(true);
+
+  const [shouldWaitGameData, setShouldWaitGameData] = useState(false);
+
+  useEffect(() => {
+    if (isGameRoute) {
+      if (isLoading && initialLoadingRef.current) {
+        setShouldWaitGameData(true);
+      } else {
+        initialLoadingRef.current = false;
+        setShouldWaitGameData(false);
+      }
+    } else {
+      initialLoadingRef.current = false;
+    }
+  }, [isGameRoute, isLoading]);
+
   if (debug) return null;
 
   const isLobby =
@@ -42,8 +59,6 @@ export const UI = () => {
     id &&
     gameState?.status === "lobby" &&
     playerId !== undefined;
-
-  const shouldWaitGameData = isGameRoute && isLoading;
 
   return (
     <AnimatePresence mode="wait">
@@ -153,7 +168,7 @@ const HomeActions = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5 w-full">
+    <div className="flex flex-col gap-5 w-full h-full">
       <FormField
         label="Join a game with code"
         htmlFor="game-code"
