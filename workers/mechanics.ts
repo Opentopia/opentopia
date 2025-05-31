@@ -342,6 +342,12 @@ export function mutate({
       break;
   }
 
+  // Update only the mutated player's view
+  const mutatedPlayer = nextState.players.find(p => p.id === playerId);
+  if (mutatedPlayer) {
+    mutatedPlayer.view = getView(playerId, nextState);
+  }
+
   return { nextState };
 }
 
@@ -470,4 +476,60 @@ function validateConquer({
     };
   }
   return { success: true };
+}
+
+// Returns the set of visible tile keys for a player, based on their units and villages (with special rules for single-village range=2)
+export function getView(playerId: string, state: State): TileKey[] {
+  const seen = new Set<TileKey>();
+  const map = state.map;
+  // 1. Units: each unit sees its tile and all adjacent (8) tiles
+  const units = state.units.filter(u => u.ownedBy === playerId);
+  for (const unit of units) {
+    const [ux, uy] = parseTileKey(unit.tileKey);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const x = ux + dx;
+        const y = uy + dy;
+        const key = `${x},${y}` as TileKey;
+        if (map[key]) seen.add(key);
+      }
+    }
+  }
+  // 2. Villages: each village sees adjacent (8) tiles, unless only one, then range=2
+  const villages = Object.values(map).filter(
+    t =>
+      t.building &&
+      t.building.type === "village" &&
+      t.building.ownedBy === playerId,
+  );
+  if (villages.length === 1) {
+    // Single village: range=2 in all directions
+    const v = villages[0];
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dy = -2; dy <= 2; dy++) {
+        const x = v.x + dx;
+        const y = v.y + dy;
+        const key = `${x},${y}` as TileKey;
+        if (map[key]) seen.add(key);
+      }
+    }
+  } else {
+    // Each village: range=1 (adjacent)
+    for (const v of villages) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const x = v.x + dx;
+          const y = v.y + dy;
+          const key = `${x},${y}` as TileKey;
+          if (map[key]) seen.add(key);
+        }
+      }
+    }
+  }
+  // 3. Merge with previous view
+  const player = state.players.find(p => p.id === playerId);
+  if (player) {
+    for (const k of player.view) seen.add(k);
+  }
+  return Array.from(seen);
 }
