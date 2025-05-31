@@ -14,7 +14,7 @@ export const useGame = (id: string | undefined) => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
   const { lastMessage, sendJsonMessage } = useWebSocket(socketUrl);
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["game", id],
     queryFn: async () => {
       if (!id) return;
@@ -129,6 +129,7 @@ export const useGame = (id: string | undefined) => {
   return {
     playerId,
     state,
+    isLoading,
     mutate: onMutate,
   };
 };

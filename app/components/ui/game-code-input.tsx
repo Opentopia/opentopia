@@ -42,7 +42,7 @@ function GameCodeInput({
       />
       <Button
         variant="tertiary"
-        className="h-full aspect-square rounded-l-none"
+        className="h-[80px] aspect-square rounded-l-none"
       >
         <svg
           className="size-5"

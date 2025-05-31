@@ -15,6 +15,13 @@ const UNIT_BASE_MOVEMENT: Record<UnitType, number> = {
 
 const TURN_DURATION = 60_000; // 1 minute
 
+const PLAYER_COLORS = [
+  ["oklch(57.7% 0.245 27.325)", "oklch(44.4% 0.177 26.899)"], // red
+  ["oklch(79.5% 0.184 86.047)", "oklch(47.6% 0.114 61.907)"], // yellow
+  ["oklch(72.3% 0.219 149.579)", "oklch(44.8% 0.119 151.328)"], // green
+  ["oklch(62.3% 0.214 259.815)", "oklch(42.4% 0.199 265.638)"], // blue
+] as const;
+
 /* -------------------------------------------------------------------------------------------------
  * Entities
  * -----------------------------------------------------------------------------------------------*/
@@ -64,6 +71,7 @@ export type Player = {
   name: string;
   view: TileKey[];
   stars: number;
+  colors: readonly [string, string];
 };
 
 /* -------------------------------------------------------------------------------------------------
@@ -282,6 +290,7 @@ export function mutate({
       nextState.players.push({
         ...mutation.player,
         isHost: nextState.players.length === 0,
+        colors: PLAYER_COLORS[nextState.players.length % PLAYER_COLORS.length],
       });
 
       break;
