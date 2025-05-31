@@ -7,4 +7,4 @@ export const ROUTES = {
   GAME: (id: string) => `/games/${id}`,
 } as const;
 
-export const API_ORIGIN = "http://localhost:8787";
+export const API_ORIGIN = "https://my-react-router-app.jb1512.workers.dev";

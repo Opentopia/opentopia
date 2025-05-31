@@ -1,6 +1,7 @@
 import { useGlobalStore } from "@/store/global";
 import { Button } from "./ui/button";
 import { type SVGProps } from "react";
+import { generateMap } from "workers/generate-map";
 
 export const PlayersLobby = ({ playerId }: { playerId: string }) => {
   const g = useGlobalStore(s => s.gameState);
@@ -47,7 +48,14 @@ export const PlayersLobby = ({ playerId }: { playerId: string }) => {
       <div className="h-12 mt-auto flex items-center justify-center">
         {isHost ? (
           <Button
-            onClick={() => onMutate({ type: "start-game" })}
+            onClick={() => {
+              const { map, units } = generateMap(players);
+              onMutate({
+                type: "start-game",
+                map,
+                units,
+              });
+            }}
             disabled={players.length < 2}
             className="size-full"
           >
