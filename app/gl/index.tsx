@@ -7,7 +7,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { Tile } from "workers/mechanics";
+import type { Tile, State } from "workers/mechanics";
 import { map } from "./mock";
 import { useGlobalStore } from "../store/global";
 
@@ -325,9 +325,10 @@ const FloatingStars: React.FC<FloatingStarsProps> = ({
 
 interface MapProps {
   spacing?: number;
+  state: State;
 }
 
-export const Game = ({ spacing = 0.1 }: MapProps) => {
+export const Game = ({ spacing = 0.1, state }: MapProps) => {
   return (
     <Canvas
       style={{ width: "100%", height: "100vh" }}
@@ -361,7 +362,7 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
       />
 
       {/* Grid of Blocks */}
-      <Grid gridSize={32} spacing={spacing} map={map} />
+      <Grid gridSize={32} spacing={spacing} map={state.map} />
 
       {/* Controls - Fixed mouse button configuration */}
       <OrbitControls
@@ -393,8 +394,9 @@ export const Game = ({ spacing = 0.1 }: MapProps) => {
 
 interface GLProps {
   spacing?: number;
+  state: State;
 }
 
-export const GL = ({ spacing = 0.1 }: GLProps) => {
-  return <Game spacing={spacing} />;
+export const GL = ({ spacing = 0.1, state }: GLProps) => {
+  return <Game spacing={spacing} state={state} />;
 };
