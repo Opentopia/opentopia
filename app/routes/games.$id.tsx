@@ -43,13 +43,27 @@ export default function GamePage() {
             className="fixed inset-0 gap-4 flex items-end justify-between p-3 md:p-6"
           >
             <div className="absolute top-4 left-1/2 -translate-x-1/2 text-background font-bold font-display text-[40px]">
-              {isMyTurn ? (
-                <div className="">YOUR TURN</div>
-              ) : (
-                <span>
-                  Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
-                </span>
-              )}
+              <AnimatePresence mode="wait">
+                {isMyTurn ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className=""
+                  >
+                    YOUR TURN
+                  </motion.div>
+                ) : (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className=""
+                  >
+                    Waiting for {state.turn?.playerId.slice(0, 4)}'s turn
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="flex gap-3">
