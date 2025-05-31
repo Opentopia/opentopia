@@ -1,11 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { GameCodeInput } from "./ui/game-code-input";
 import { FormField } from "./ui/form-field";
 import { ActiveGamesList } from "./ui/active-games-list";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { type SVGProps } from "react";
 import type { CreateGameResponse } from "workers/shared-types";
 import { useGame } from "@/hooks/use-game";
@@ -14,8 +13,13 @@ export const UI = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { playerId, state, mutate } = useGame(id);
+  const [searchParams] = useSearchParams();
 
   const [isCreatingGame, setIsCreatingGame] = useState(false);
+
+  const debug = searchParams.get("debug");
+
+  if (debug) return null;
 
   const handleCreateGame = async () => {
     try {

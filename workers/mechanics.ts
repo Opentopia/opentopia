@@ -13,6 +13,8 @@ const UNIT_BASE_MOVEMENT: Record<UnitType, number> = {
   archer: 1,
 };
 
+const TURN_DURATION = 60_000; // 1 minute
+
 /* -------------------------------------------------------------------------------------------------
  * Entities
  * -----------------------------------------------------------------------------------------------*/
@@ -262,9 +264,16 @@ export function mutate({
         }
       }
 
+      // 3. Reset movement for all units owned by nextPlayer
+      for (const unit of nextState.units) {
+        if (unit.ownedBy === nextPlayer.id) {
+          unit.movement = UNIT_BASE_MOVEMENT[unit.type];
+        }
+      }
+
       nextState.turn = {
         playerId: nextPlayer.id,
-        until: Date.now() + 30_000,
+        until: Date.now() + TURN_DURATION,
       };
       break;
     }
@@ -324,7 +333,7 @@ export function mutate({
       nextState.map = generateMap(nextState.players.length);
       nextState.turn = {
         playerId: player.id,
-        until: Date.now() + 30_000,
+        until: Date.now() + TURN_DURATION,
       };
       break;
     }
