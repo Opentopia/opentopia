@@ -25,9 +25,13 @@ export const ActiveGamesList = ({
   const [games, setGames] = useState<ActiveGame[]>([]);
 
   useEffect(() => {
-    const fetchGames = async () => {
+    const fetchGames = async (isInitialLoad = false) => {
       try {
-        setIsLoading(true);
+        // Only show loading state on initial load, not on refreshes
+        if (isInitialLoad) {
+          setIsLoading(true);
+        }
+
         const response = await fetch("/api/games");
         const gamesData = (await response.json()) as GamesListResponse;
 
@@ -63,18 +67,24 @@ export const ActiveGamesList = ({
         setGames(transformedGames);
       } catch (error) {
         console.error("Failed to fetch games:", error);
-        setGames([]);
+        // Only reset games on initial load failure
+        if (isInitialLoad) {
+          setGames([]);
+        }
       } finally {
-        setIsLoading(false);
+        // Only update loading state on initial load
+        if (isInitialLoad) {
+          setIsLoading(false);
+        }
       }
     };
 
-    // Initial fetch
-    fetchGames();
+    // Initial fetch with loading state
+    fetchGames(true);
 
-    // Set up interval to refresh games every 5 seconds
+    // Set up interval to refresh games every 5 seconds (without loading state)
     const interval = setInterval(() => {
-      fetchGames();
+      fetchGames(false);
     }, 5000);
 
     return () => clearInterval(interval);
