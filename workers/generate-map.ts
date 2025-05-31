@@ -20,7 +20,13 @@ export function generateMap(numberOfPlayers: number): Record<string, Tile> {
 
       // Create clusters of rocks for more interesting terrain
       const rockProbability = calculateRockProbability(x, y, mapSize);
-      const kind = Math.random() < rockProbability ? "rock" : "grass";
+      let kind: "rock" | "grass" = "grass";
+      if (Math.random() < rockProbability) {
+        // Only place a rock if it doesn't violate adjacency rules
+        if (canPlaceRock(x, y, map, mapSize)) {
+          kind = "rock";
+        }
+      }
 
       map[key] = { x, y, kind };
     }
@@ -305,4 +311,85 @@ function placeVillages(
   }
 
   return villages;
+}
+
+// Helper to check if placing a rock at (x, y) would create a group of 4 or more rocks in a row or L
+function canPlaceRock(
+  x: number,
+  y: number,
+  map: Record<string, Tile>,
+  mapSize: number,
+): boolean {
+  // Check for 4 in a row (horizontal, vertical, diagonal)
+  const directions = [
+    [1, 0], // horizontal
+    [0, 1], // vertical
+    [1, 1], // diagonal down-right
+    [1, -1], // diagonal up-right
+  ];
+  for (const [dx, dy] of directions) {
+    let count = 1;
+    // Check backward
+    for (let i = 1; i <= 2; i++) {
+      const nx = x - dx * i;
+      const ny = y - dy * i;
+      if (nx >= 0 && nx < mapSize && ny >= 0 && ny < mapSize) {
+        const key = `${nx},${ny}` as TileKey;
+        if (map[key]?.kind === "rock") {
+          count++;
+        } else {
+          break;
+        }
+      }
+    }
+    // Check forward
+    for (let i = 1; i <= 2; i++) {
+      const nx = x + dx * i;
+      const ny = y + dy * i;
+      if (nx >= 0 && nx < mapSize && ny >= 0 && ny < mapSize) {
+        const key = `${nx},${ny}` as TileKey;
+        if (map[key]?.kind === "rock") {
+          count++;
+        } else {
+          break;
+        }
+      }
+    }
+    if (count >= 4) return false;
+  }
+  // Check for L shape (2x2 block of rocks)
+  const lOffsets = [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [1, 1],
+    [0, 0],
+    [-1, 0],
+    [0, 1],
+    [-1, 1],
+    [0, 0],
+    [1, 0],
+    [0, -1],
+    [1, -1],
+    [0, 0],
+    [-1, 0],
+    [0, -1],
+    [-1, -1],
+  ];
+  for (let i = 0; i < lOffsets.length; i += 4) {
+    let lCount = 0;
+    for (let j = 0; j < 4; j++) {
+      const nx = x + lOffsets[i + j][0];
+      const ny = y + lOffsets[i + j][1];
+      if (nx >= 0 && nx < mapSize && ny >= 0 && ny < mapSize) {
+        const key = `${nx},${ny}` as TileKey;
+        if ((nx === x && ny === y) || map[key]?.kind === "rock") {
+          lCount++;
+        }
+      }
+    }
+    if (lCount === 4) return false;
+  }
+  // Otherwise, it's safe to place a rock
+  return true;
 }
