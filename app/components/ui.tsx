@@ -217,6 +217,7 @@ const GameActions = ({ id }: { id: string }) => {
           <Button
             className="mt-3 py-0 px-2 h-auto w-max mx-auto"
             variant="ghost"
+            size="default"
             asChild
           >
             <Link to="/">Back to list</Link>
