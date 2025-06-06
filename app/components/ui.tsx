@@ -65,10 +65,13 @@ export const UI = () => {
           transition={{ duration: 0.3 }}
         >
           <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-foreground/30 p-1.5">
-            <Card className="p-2 flex flex-col md:flex-row pointer-events-auto gap-0 w-full md:w-auto h-full md:h-auto overflow-auto md:overflow-hidden">
+            <Card
+              style={{ ["--max-col-height" as string]: "500px" }}
+              className="p-2 flex flex-col md:flex-row pointer-events-auto gap-0 w-full md:w-auto h-full md:h-auto overflow-auto md:overflow-hidden"
+            >
               <div
                 id="content"
-                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 md:w-[450px]"
+                className="flex flex-col gap-4 md:gap-12 items-center bg-background shadow-card-inset p-3 md:p-10 md:pb-6 md:w-[450px] max-h-[var(--max-col-height)]"
               >
                 <div className="flex flex-col items-center w-full py-3 gap-1 border-b border-border/20 border-dashed">
                   <Logo className="w-full" />
@@ -105,7 +108,7 @@ export const UI = () => {
                   JOYCO x BaseHub 2025©
                 </span>
               </div>
-              <div className="w-full md:w-[350px]">
+              <div className="w-full md:w-[350px] max-h-[var(--max-col-height)] overflow-y-auto">
                 <AnimatePresence mode="wait"></AnimatePresence>
                 {isLobby && playerId ? (
                   <motion.div

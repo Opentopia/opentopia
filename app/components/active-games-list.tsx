@@ -171,13 +171,15 @@ export const ActiveGamesList = ({
   };
 
   return (
-    <div className={`flex flex-col gap-3 p-3 ${className || ""}`}>
-      <div className="w-full flex items-baseline justify-between pb-3 border-b border-dashed border-border/20">
+    <div className={`flex flex-col gap-3 px-3 pb-3 ${className || ""}`}>
+      <div className="w-full flex items-baseline justify-between pb-3 border-b border-dashed border-border/20 sticky pt-3 top-0 bg-card z-10">
         <h3 className="text-sm font-bold text-foreground/70 text-left">
           Active Games
         </h3>
         <span className="text-sm italic text-foreground/50 text-right">
-          {isLoading ? "..." : `${games.length} games found`}
+          {isLoading
+            ? "..."
+            : `${games.length} game${games.length === 1 ? "" : "s"} found`}
         </span>
       </div>
       {renderContent()}

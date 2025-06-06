@@ -1,12 +1,13 @@
 {
-  "name": "my-react-router-app",
+  "name": "opentopia",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "react-router build",
     "cf-typegen": "wrangler types",
     "deploy": "pnpm run build && wrangler deploy",
-    "dev": "concurrently \"react-router dev\" \"wrangler dev\"",
+    "dev": "cross-env NODE_ENV=development nodemon --watch app --watch workers --watch vite.config.ts --watch tsconfig.json --ext ts,tsx,js,jsx,css --exec \"react-router build --mode development && wrangler dev\"",
+    "clean": "rm -rf .react-router build .wrangler",
     "postinstall": "npm run cf-typegen",
     "preview": "pnpm run build && vite preview",
     "typecheck": "npm run cf-typegen && react-router typegen && tsc -b"
@@ -44,6 +45,8 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@types/three": "^0.176.0",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.1.10",
     "tailwindcss": "^4.1.4",
     "tw-animate-css": "^1.3.2",
     "typescript": "^5.8.3",
