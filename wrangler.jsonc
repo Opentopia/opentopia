@@ -11,9 +11,6 @@
     "nodejs_compat_populate_process_env",
   ],
   "main": "./workers/app.ts",
-  "vars": {
-    "VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare",
-  },
   "observability": {
     "enabled": true,
   },
