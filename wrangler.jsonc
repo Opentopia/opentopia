@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "my-react-router-app",
+  "name": "opentopia",
   "compatibility_date": "2025-04-04",
   "compatibility_flags": [
     "nodejs_compat",
