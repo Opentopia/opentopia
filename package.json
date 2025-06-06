@@ -6,7 +6,7 @@
     "build": "react-router build",
     "cf-typegen": "wrangler types",
     "deploy": "pnpm run build && wrangler deploy",
-    "dev": "cross-env NODE_ENV=development nodemon --watch app --watch workers --watch vite.config.ts --watch tsconfig.json --ext ts,tsx,js,jsx,css --exec \"react-router build --mode development && wrangler dev\"",
+    "dev": "cross-env NODE_ENV=development nodemon --watch app --watch workers --watch vite.config.ts --watch tsconfig.json --ext ts,tsx,js,jsx,css --exec \"pnpm run cf-typegen && react-router build --mode development && wrangler dev\"",
     "clean": "rm -rf .react-router build .wrangler",
     "postinstall": "npm run cf-typegen",
     "preview": "pnpm run build && vite preview",
